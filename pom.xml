@@ -10,6 +10,7 @@
   <artifactId>sonar-scm-git-plugin</artifactId>
   <name>SonarQube :: Plugins :: SCM :: Git</name>
   <packaging>sonar-plugin</packaging>
+  <version>1.0-SNAPSHOT</version>
   <description>Git SCM Provider.</description>
   <url>http://redirect.sonarsource.com/plugins/scmgit.html</url>
   <inceptionYear>2014</inceptionYear>
