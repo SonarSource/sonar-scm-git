@@ -93,6 +93,8 @@ public class JGitBlameCommand extends BlameCommand {
         .findGitDir(basedir)
         .setMustExist(true)
         .build();
+      // SONARSCGIT-2 Force initialization of shallow commits to avoid later concurrent modification issue
+      repo.getObjectDatabase().newReader().getShallowCommits();
       return repo;
     } catch (IOException e) {
       throw new IllegalStateException("Unable to open Git repository", e);
