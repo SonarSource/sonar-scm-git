@@ -49,7 +49,7 @@
   
   <ciManagement>
     <system>Cloudbees</system>
-    <url>TODO</url>
+    <url>https://sonarplugins.ci.cloudbees.com/job/scm-git/</url>
   </ciManagement>
 
   <properties>
