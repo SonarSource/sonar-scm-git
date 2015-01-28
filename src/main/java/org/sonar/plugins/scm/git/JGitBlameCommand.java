@@ -113,10 +113,15 @@ public class JGitBlameCommand extends BlameCommand {
 
   private void blame(BlameOutput output, Git git, File gitBaseDir, InputFile inputFile) throws GitAPIException {
     String filename = pathResolver.relativePath(gitBaseDir, inputFile.file());
-    org.eclipse.jgit.blame.BlameResult blameResult = git.blame()
-      // Equivalent to -w command line option
-      .setTextComparator(RawTextComparator.WS_IGNORE_ALL)
-      .setFilePath(filename).call();
+    org.eclipse.jgit.blame.BlameResult blameResult;
+    try {
+      blameResult = git.blame()
+        // Equivalent to -w command line option
+        .setTextComparator(RawTextComparator.WS_IGNORE_ALL)
+        .setFilePath(filename).call();
+    } catch (Exception e) {
+      throw new IllegalStateException("Unable to blame file " + inputFile.relativePath(), e);
+    }
     List<BlameLine> lines = new ArrayList<BlameLine>();
     for (int i = 0; i < blameResult.getResultContents().size(); i++) {
       if (blameResult.getSourceAuthor(i) == null || blameResult.getSourceCommit(i) == null) {
