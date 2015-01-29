@@ -24,8 +24,6 @@ import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.RawTextComparator;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.RepositoryBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.sonar.api.batch.fs.InputFile;
 import org.sonar.api.batch.scm.BlameCommand;
 import org.sonar.api.batch.scm.BlameLine;
@@ -42,8 +40,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 public class JGitBlameCommand extends BlameCommand {
-
-  private static final Logger LOG = LoggerFactory.getLogger(JGitBlameCommand.class);
 
   private final PathResolver pathResolver;
 
@@ -125,9 +121,10 @@ public class JGitBlameCommand extends BlameCommand {
     List<BlameLine> lines = new ArrayList<BlameLine>();
     for (int i = 0; i < blameResult.getResultContents().size(); i++) {
       if (blameResult.getSourceAuthor(i) == null || blameResult.getSourceCommit(i) == null) {
-        LOG.info("Author: " + blameResult.getSourceAuthor(i));
-        LOG.info("Source commit: " + blameResult.getSourceCommit(i));
-        throw new IllegalStateException("Unable to blame file " + inputFile.relativePath() + ". No blame info at line " + (i + 1) + ". Is file commited?");
+        throw new IllegalStateException("Unable to blame file " + inputFile.relativePath() +
+          ". No blame info at line " + (i + 1) + ". Is file commited?\n"
+          + "Author: " + blameResult.getSourceAuthor(i)
+          + "\nSource commit: " + blameResult.getSourceCommit(i));
       }
       lines.add(new org.sonar.api.batch.scm.BlameLine().date(blameResult.getSourceAuthor(i).getWhen()).revision(blameResult.getSourceCommit(i).getName())
         .author(blameResult.getSourceAuthor(i).getEmailAddress()));
