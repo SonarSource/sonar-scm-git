@@ -129,7 +129,6 @@ public class JGitBlameCommand extends BlameCommand {
           ". No blame info at line " + (i + 1) + ". Is file commited?"
           + " Author: " + blameResult.getSourceAuthor(i)
           + " Source commit: " + blameResult.getSourceCommit(i));
-        output.blameResult(inputFile, null);
         return;
       }
       lines.add(new org.sonar.api.batch.scm.BlameLine().date(blameResult.getSourceAuthor(i).getWhen()).revision(blameResult.getSourceCommit(i).getName())
