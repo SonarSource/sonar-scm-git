@@ -171,7 +171,7 @@ public class JGitBlameCommandTest {
   }
 
   @Test
-  public void testBlameOnModifiedFile() throws IOException {
+  public void dontFailOnModifiedFile() throws IOException {
     File projectDir = temp.newFolder();
     javaUnzip(new File("test-repos/dummy-git.zip"), projectDir);
 
@@ -189,14 +189,12 @@ public class JGitBlameCommandTest {
 
     BlameOutput blameResult = mock(BlameOutput.class);
 
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("Unable to blame file " + relativePath + ". No blame info at line 27. Is file commited?");
     when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile));
     jGitBlameCommand.blame(input, blameResult);
   }
 
   @Test
-  public void testBlameOnNewFile() throws IOException {
+  public void dontFailOnNewFile() throws IOException {
     File projectDir = temp.newFolder();
     javaUnzip(new File("test-repos/dummy-git.zip"), projectDir);
 
@@ -218,8 +216,6 @@ public class JGitBlameCommandTest {
 
     BlameOutput blameResult = mock(BlameOutput.class);
 
-    thrown.expect(IllegalStateException.class);
-    thrown.expectMessage("Unable to blame file " + relativePath2 + ". No blame info at line 1. Is file commited?");
     when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile, inputFile2));
     jGitBlameCommand.blame(input, blameResult);
   }
