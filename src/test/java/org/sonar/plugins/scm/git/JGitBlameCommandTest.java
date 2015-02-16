@@ -35,6 +35,7 @@ import org.sonar.api.batch.scm.BlameCommand.BlameOutput;
 import org.sonar.api.batch.scm.BlameLine;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.DateUtils;
+import org.sonar.api.utils.MessageException;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -118,6 +119,32 @@ public class JGitBlameCommandTest {
         new BlameLine().revision(revision).date(revisionDate).author(author),
         new BlameLine().revision(revision).date(revisionDate).author(author),
         new BlameLine().revision(revision).date(revisionDate).author(author)));
+  }
+
+  @Test
+  public void properFailureIfNotAGitProject() throws IOException {
+    File projectDir = temp.newFolder();
+    javaUnzip(new File("test-repos/dummy-git.zip"), projectDir);
+
+    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
+
+    File baseDir = new File(projectDir, "dummy-git");
+
+    // Delete .git
+    FileUtils.forceDelete(new File(baseDir, ".git"));
+
+    fs.setBaseDir(baseDir);
+    DefaultInputFile inputFile = new DefaultInputFile("foo", DUMMY_JAVA)
+      .setFile(new File(baseDir, DUMMY_JAVA));
+    fs.add(inputFile);
+
+    BlameOutput blameResult = mock(BlameOutput.class);
+    when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile));
+
+    thrown.expect(MessageException.class);
+    thrown.expectMessage("dummy-git doesn't seem to be contained in a Git repository");
+
+    jGitBlameCommand.blame(input, blameResult);
   }
 
   @Test
