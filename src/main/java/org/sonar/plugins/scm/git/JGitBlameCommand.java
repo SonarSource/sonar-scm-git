@@ -61,13 +61,14 @@ public class JGitBlameCommand extends BlameCommand {
       File gitBaseDir = repo.getWorkTree();
       ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
       List<Future<Void>> tasks = submitTasks(input, output, git, gitBaseDir, executorService);
-      waitForTaskToComplete(tasks);
+      waitForTaskToComplete(executorService, tasks);
     } finally {
       repo.close();
     }
   }
 
-  private void waitForTaskToComplete(List<Future<Void>> tasks) {
+  private void waitForTaskToComplete(ExecutorService executorService, List<Future<Void>> tasks) {
+    executorService.shutdown();
     for (Future<Void> task : tasks) {
       try {
         task.get();
