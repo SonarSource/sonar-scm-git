@@ -136,7 +136,7 @@ public class JGitBlameCommand extends BlameCommand {
           + " Source commit: " + blameResult.getSourceCommit(i));
         return;
       }
-      lines.add(new org.sonar.api.batch.scm.BlameLine().date(blameResult.getSourceAuthor(i).getWhen()).revision(blameResult.getSourceCommit(i).getName())
+      lines.add(new org.sonar.api.batch.scm.BlameLine().date(blameResult.getSourceCommitter(i).getWhen()).revision(blameResult.getSourceCommit(i).getName())
         .author(blameResult.getSourceAuthor(i).getEmailAddress()));
     }
     if (lines.size() == inputFile.lines() - 1) {
