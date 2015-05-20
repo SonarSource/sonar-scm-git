@@ -131,7 +131,7 @@ public class JGitBlameCommand extends BlameCommand {
     for (int i = 0; i < blameResult.getResultContents().size(); i++) {
       if (blameResult.getSourceAuthor(i) == null || blameResult.getSourceCommit(i) == null) {
         LOG.debug("Unable to blame file " + inputFile.relativePath() +
-          ". No blame info at line " + (i + 1) + ". Is file commited?"
+          ". No blame info at line " + (i + 1) + ". Is file committed?"
           + " Author: " + blameResult.getSourceAuthor(i)
           + " Source commit: " + blameResult.getSourceCommit(i));
         return;
