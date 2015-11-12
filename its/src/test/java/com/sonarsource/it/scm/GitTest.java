@@ -32,6 +32,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -40,6 +42,7 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
+import org.apache.commons.lang3.time.DateUtils;
 import org.fest.assertions.MapAssert;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -82,6 +85,8 @@ public class GitTest {
     .setOrchestratorProperty("javaVersion", "LATEST_RELEASE")
     .addPlugin("java")
     .build();
+
+  private boolean IS_5_2_OR_MORE = orchestrator.getServer().version().isGreaterThanOrEquals("5.2");
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -163,15 +168,18 @@ public class GitTest {
   private class LineData {
 
     final String revision;
-    final String date;
+    final Date date;
     final String author;
 
     public LineData(String revision, String datetime, String author) throws ParseException {
-      boolean is_5_2_plus = orchestrator.getServer().version().isGreaterThanOrEquals("5.2");
-      // Revision was added in 5.2
-      this.revision = is_5_2_plus ? revision : null;
-      // Time part was added in 5.2
-      this.date = is_5_2_plus ? datetime : DATE_FORMAT.format(DATETIME_FORMAT.parse(datetime));
+      this.revision = IS_5_2_OR_MORE ? revision : null;
+      this.date = IS_5_2_OR_MORE ? DATETIME_FORMAT.parse(datetime) : DateUtils.truncate(DATETIME_FORMAT.parse(datetime), Calendar.DAY_OF_MONTH);
+      this.author = author;
+    }
+
+    public LineData(String date, String author) throws ParseException {
+      this.revision = null;
+      this.date = DATE_FORMAT.parse(date);
       this.author = author;
     }
 
@@ -192,7 +200,7 @@ public class GitTest {
   }
 
   private Map<Integer, LineData> getScmData(String fileKey) throws ParseException {
-    boolean is_5_2_plus = orchestrator.getServer().version().isGreaterThanOrEquals("5.2");
+
     Map<Integer, LineData> result = new HashMap<Integer, LineData>();
     String json = orchestrator.getServer().adminWsClient().get("api/sources/scm", "commits_by_line", "true", "key", fileKey);
     JSONObject obj = (JSONObject) JSONValue.parse(json);
@@ -202,8 +210,8 @@ public class GitTest {
       // Time part was added in 5.2
       String dateOrDatetime = (String) item.get(2);
       // Revision was added in 5.2
-      result.put(((Long) item.get(0)).intValue(), new LineData(is_5_2_plus ? (String) item.get(3) : null,
-        is_5_2_plus ? dateOrDatetime : DATETIME_FORMAT.format(DATE_FORMAT.parse(dateOrDatetime)), (String) item.get(1)));
+      result.put(((Long) item.get(0)).intValue(), IS_5_2_OR_MORE ? new LineData((String) item.get(3),
+        dateOrDatetime, (String) item.get(1)) : new LineData(dateOrDatetime, (String) item.get(1)));
     }
     return result;
   }
