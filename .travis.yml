@@ -10,13 +10,15 @@ script:
 
 env:
   matrix:
-    - RUN_ITS=false PR_ANALYSIS=true
-    - RUN_ITS=true SQ_VERSION=5.1
-    - RUN_ITS=true SQ_VERSION=DEV
+    - TARGET=CI
+    - TARGET=IT SQ_VERSION=5.1
+    - TARGET=IT SQ_VERSION=DEV
 
 cache:
   directories:
-    - '$HOME/.m2/repository'
+    - $HOME/.m2/repository
+    # for integration tests and analysis
+    - $HOME/.sonar
 
 notifications:
   email: false
