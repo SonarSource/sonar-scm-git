@@ -43,23 +43,20 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.apache.commons.lang3.time.DateUtils;
-import org.fest.assertions.MapAssert;
+import org.assertj.core.data.MapEntry;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.sonar.wsclient.jsonsimple.JSONArray;
 import org.sonar.wsclient.jsonsimple.JSONObject;
 import org.sonar.wsclient.jsonsimple.JSONValue;
 
-import static org.fest.assertions.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class GitTest {
-  private static final Logger LOG = LoggerFactory.getLogger(GitTest.class);
   public static final File PROJECTS_DIR = new File("target/projects");
   public static final File SOURCES_DIR = new File("scm-repo");
 
@@ -109,14 +106,14 @@ public class GitTest {
     runSonar("dummy-git");
 
     assertThat(getScmData("dummy-git:dummy:src/main/java/org/dummy/Dummy.java"))
-      .includes(
-        MapAssert.entry(1, new LineData("6b3aab35a3ea32c1636fee56f996e677653c48ea", "2012-07-17T16:12:48+0200", "david@gageot.net")),
-        MapAssert.entry(2, new LineData("6b3aab35a3ea32c1636fee56f996e677653c48ea", "2012-07-17T16:12:48+0200", "david@gageot.net")),
-        MapAssert.entry(3, new LineData("6b3aab35a3ea32c1636fee56f996e677653c48ea", "2012-07-17T16:12:48+0200", "david@gageot.net")),
+      .contains(
+        MapEntry.entry(1, new LineData("6b3aab35a3ea32c1636fee56f996e677653c48ea", "2012-07-17T16:12:48+0200", "david@gageot.net")),
+        MapEntry.entry(2, new LineData("6b3aab35a3ea32c1636fee56f996e677653c48ea", "2012-07-17T16:12:48+0200", "david@gageot.net")),
+        MapEntry.entry(3, new LineData("6b3aab35a3ea32c1636fee56f996e677653c48ea", "2012-07-17T16:12:48+0200", "david@gageot.net")),
 
-        MapAssert.entry(26, new LineData("0d269c1acfb8e6d4d33f3c43041eb87e0df0f5e7", "2015-05-19T13:31:09+0200", "duarte.meneses@sonarsource.com")),
-        MapAssert.entry(27, new LineData("0d269c1acfb8e6d4d33f3c43041eb87e0df0f5e7", "2015-05-19T13:31:09+0200", "duarte.meneses@sonarsource.com")),
-        MapAssert.entry(28, new LineData("0d269c1acfb8e6d4d33f3c43041eb87e0df0f5e7", "2015-05-19T13:31:09+0200", "duarte.meneses@sonarsource.com")));
+        MapEntry.entry(26, new LineData("0d269c1acfb8e6d4d33f3c43041eb87e0df0f5e7", "2015-05-19T13:31:09+0200", "duarte.meneses@sonarsource.com")),
+        MapEntry.entry(27, new LineData("0d269c1acfb8e6d4d33f3c43041eb87e0df0f5e7", "2015-05-19T13:31:09+0200", "duarte.meneses@sonarsource.com")),
+        MapEntry.entry(28, new LineData("0d269c1acfb8e6d4d33f3c43041eb87e0df0f5e7", "2015-05-19T13:31:09+0200", "duarte.meneses@sonarsource.com")));
   }
 
   @Test
@@ -200,13 +197,12 @@ public class GitTest {
   }
 
   private Map<Integer, LineData> getScmData(String fileKey) throws ParseException {
-
-    Map<Integer, LineData> result = new HashMap<Integer, LineData>();
+    Map<Integer, LineData> result = new HashMap<>();
     String json = orchestrator.getServer().adminWsClient().get("api/sources/scm", "commits_by_line", "true", "key", fileKey);
     JSONObject obj = (JSONObject) JSONValue.parse(json);
     JSONArray array = (JSONArray) obj.get("scm");
-    for (int i = 0; i < array.size(); i++) {
-      JSONArray item = (JSONArray) array.get(i);
+    for (Object anArray : array) {
+      JSONArray item = (JSONArray) anArray;
       // Time part was added in 5.2
       String dateOrDatetime = (String) item.get(2);
       // Revision was added in 5.2
