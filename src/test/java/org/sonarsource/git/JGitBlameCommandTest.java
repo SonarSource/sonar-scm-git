@@ -48,6 +48,8 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import static java.lang.String.format;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -240,8 +242,7 @@ public class JGitBlameCommandTest {
 
   private static void javaUnzip(File zip, File toDir) {
     try {
-      ZipFile zipFile = new ZipFile(zip);
-      try {
+      try (ZipFile zipFile = new ZipFile(zip)) {
         Enumeration<? extends ZipEntry> entries = zipFile.entries();
         while (entries.hasMoreElements()) {
           ZipEntry entry = entries.nextElement();
@@ -262,11 +263,9 @@ public class JGitBlameCommandTest {
             }
           }
         }
-      } finally {
-        zipFile.close();
       }
     } catch (Exception e) {
-      throw new IllegalStateException("Fail to unzip " + zip + " to " + toDir, e);
+      throw new IllegalStateException(format("Fail to unzip %s to %s", zip, toDir), e);
     }
   }
 

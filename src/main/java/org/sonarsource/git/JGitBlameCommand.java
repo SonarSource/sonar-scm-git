@@ -82,7 +82,7 @@ public class JGitBlameCommand extends BlameCommand {
   }
 
   private List<Future<Void>> submitTasks(BlameInput input, BlameOutput output, Git git, File gitBaseDir, ExecutorService executorService) {
-    List<Future<Void>> tasks = new ArrayList<Future<Void>>();
+    List<Future<Void>> tasks = new ArrayList<>();
     for (InputFile inputFile : input.filesToBlame()) {
       tasks.add(submitTask(output, git, gitBaseDir, inputFile, executorService));
     }
@@ -127,7 +127,7 @@ public class JGitBlameCommand extends BlameCommand {
     } catch (Exception e) {
       throw new IllegalStateException("Unable to blame file " + inputFile.relativePath(), e);
     }
-    List<BlameLine> lines = new ArrayList<BlameLine>();
+    List<BlameLine> lines = new ArrayList<>();
     for (int i = 0; i < blameResult.getResultContents().size(); i++) {
       if (blameResult.getSourceAuthor(i) == null || blameResult.getSourceCommit(i) == null) {
         LOG.debug("Unable to blame file " + inputFile.relativePath() +
