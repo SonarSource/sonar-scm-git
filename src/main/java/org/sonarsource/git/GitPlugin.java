@@ -17,21 +17,16 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonar.plugins.scm.git;
+package org.sonarsource.git;
 
-import com.google.common.collect.ImmutableList;
-import org.sonar.api.SonarPlugin;
-
+import java.util.Arrays;
 import java.util.List;
+import org.sonar.api.SonarPlugin;
 
 public final class GitPlugin extends SonarPlugin {
 
-  static final String CATEGORY_GIT = "Git";
-
   @Override
   public List getExtensions() {
-    return ImmutableList.of(
-      GitScmProvider.class,
-      JGitBlameCommand.class);
+    return Arrays.asList(GitScmProvider.class, JGitBlameCommand.class);
   }
 }

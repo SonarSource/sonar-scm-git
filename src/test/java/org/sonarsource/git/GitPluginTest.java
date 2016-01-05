@@ -17,33 +17,16 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonar.plugins.scm.git;
+package org.sonarsource.git;
 
-import org.sonar.api.batch.scm.BlameCommand;
-import org.sonar.api.batch.scm.ScmProvider;
+import org.junit.Test;
 
-import java.io.File;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class GitScmProvider extends ScmProvider {
+public class GitPluginTest {
 
-  private final JGitBlameCommand jgitBlameCommand;
-
-  public GitScmProvider(JGitBlameCommand jgitBlameCommand) {
-    this.jgitBlameCommand = jgitBlameCommand;
-  }
-
-  @Override
-  public String key() {
-    return "git";
-  }
-
-  @Override
-  public boolean supports(File baseDir) {
-    return new File(baseDir, ".git").exists();
-  }
-
-  @Override
-  public BlameCommand blameCommand() {
-    return this.jgitBlameCommand;
+  @Test
+  public void getExtensions() {
+    assertThat(new GitPlugin().getExtensions()).hasSize(2);
   }
 }

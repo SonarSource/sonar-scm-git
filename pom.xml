@@ -56,7 +56,7 @@
   <properties>
     <sonar.buildVersion>5.0</sonar.buildVersion>
     <sonar.pluginName>Git</sonar.pluginName>
-    <sonar.pluginClass>org.sonar.plugins.scm.git.GitPlugin</sonar.pluginClass>
+    <sonar.pluginClass>org.sonarsource.git.GitPlugin</sonar.pluginClass>
   </properties>
 
 
