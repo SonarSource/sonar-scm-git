@@ -2,17 +2,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.codehaus.sonar-plugins</groupId>
+    <groupId>org.sonarsource.parent</groupId>
     <artifactId>parent</artifactId>
-    <version>19</version>
-    <relativePath />
+    <version>26</version>
   </parent>
-  <groupId>org.codehaus.sonar-plugins</groupId>
+  <groupId>org.sonarsource.git</groupId>
   <artifactId>sonar-scm-git-plugin</artifactId>
   <name>SonarQube :: Plugins :: SCM :: Git</name>
   <packaging>sonar-plugin</packaging>
   <version>1.2-SNAPSHOT</version>
-  <description>Git SCM Provider.</description>
+  <description>Git SCM Provider</description>
   <url>http://redirect.sonarsource.com/plugins/scmgit.html</url>
   <inceptionYear>2014</inceptionYear>
 
@@ -38,20 +37,20 @@
   </developers>
 
   <scm>
-    <connection>scm:git:git@github.com:SonarCommunity/sonar-scm-git.git</connection>
-    <developerConnection>scm:git:git@github.com:SonarCommunity/sonar-scm-git.git</developerConnection>
-    <url>https://github.com/SonarCommunity/sonar-scm-git</url>
+    <connection>scm:git:git@github.com:SonarSource/sonar-scm-git.git</connection>
+    <developerConnection>scm:git:git@github.com:SonarSource/sonar-scm-git.git</developerConnection>
+    <url>https://github.com/SonarSource/sonar-scm-git</url>
     <tag>HEAD</tag>
   </scm>
   
   <issueManagement>
     <system>jira</system>
-    <url>http://jira.codehaus.org/browse/SONARSCGIT</url>
+    <url>https://jira.sonarsource.com/browse/SONARSCGIT</url>
   </issueManagement>
   
   <ciManagement>
-    <system>Cloudbees</system>
-    <url>https://sonarplugins.ci.cloudbees.com/job/scm-git/</url>
+    <system>travis-ci</system>
+    <url>https://travis-ci.org/SonarSource/sonar-scm-git</url>
   </ciManagement>
 
   <properties>
@@ -78,6 +77,12 @@
       <groupId>org.eclipse.jgit</groupId>
       <artifactId>org.eclipse.jgit</artifactId>
       <version>3.6.2.201501210735-r</version>
+      <exclusions>
+        <exclusion>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <!-- unit tests -->
