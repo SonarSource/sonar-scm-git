@@ -67,7 +67,7 @@ public class JGitBlameCommand extends BlameCommand {
     }
   }
 
-  private void waitForTaskToComplete(ExecutorService executorService, List<Future<Void>> tasks) {
+  private static void waitForTaskToComplete(ExecutorService executorService, List<Future<Void>> tasks) {
     executorService.shutdown();
     for (Future<Void> task : tasks) {
       try {
@@ -89,7 +89,7 @@ public class JGitBlameCommand extends BlameCommand {
     return tasks;
   }
 
-  private Repository buildRepository(File basedir) {
+  private static Repository buildRepository(File basedir) {
     RepositoryBuilder repoBuilder = new RepositoryBuilder()
       .findGitDir(basedir)
       .setMustExist(true);

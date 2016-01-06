@@ -19,27 +19,28 @@
  */
 package org.sonarsource.scm.git;
 
+import java.io.File;
+import java.io.IOException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.sonar.api.scan.filesystem.PathResolver;
 
-import java.io.File;
-import java.io.IOException;
-
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 public class GitScmProviderTest {
 
   @Rule
   public TemporaryFolder temp = new TemporaryFolder();
+
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void sanityCheck() {
-    assertThat(new GitScmProvider(null).key()).isEqualTo("git");
+    assertThat(new GitScmProvider(mock(JGitBlameCommand.class)).key()).isEqualTo("git");
   }
 
   @Test
@@ -53,11 +54,15 @@ public class GitScmProviderTest {
   @Test
   public void testAutodetection() throws IOException {
     File baseDirEmpty = temp.newFolder();
-    assertThat(new GitScmProvider(null).supports(baseDirEmpty)).isFalse();
+    assertThat(new GitScmProvider(mock(JGitBlameCommand.class)).supports(baseDirEmpty)).isFalse();
 
     File gitBaseDir = temp.newFolder();
     new File(gitBaseDir, ".git").mkdir();
-    assertThat(new GitScmProvider(null).supports(gitBaseDir)).isTrue();
+    assertThat(new GitScmProvider(mockCommand()).supports(gitBaseDir)).isTrue();
+  }
+
+  private static JGitBlameCommand mockCommand() {
+    return mock(JGitBlameCommand.class);
   }
 
 }
