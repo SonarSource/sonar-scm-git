@@ -6,7 +6,7 @@
     <artifactId>parent</artifactId>
     <version>26</version>
   </parent>
-  <groupId>org.sonarsource.git</groupId>
+  <groupId>org.sonarsource.scm.git</groupId>
   <artifactId>sonar-scm-git-plugin</artifactId>
   <name>SonarQube :: Plugins :: SCM :: Git</name>
   <packaging>sonar-plugin</packaging>
@@ -56,7 +56,7 @@
   <properties>
     <sonar.buildVersion>5.0</sonar.buildVersion>
     <sonar.pluginName>Git</sonar.pluginName>
-    <sonar.pluginClass>org.sonarsource.git.GitPlugin</sonar.pluginClass>
+    <sonar.pluginClass>org.sonarsource.scm.git.GitPlugin</sonar.pluginClass>
   </properties>
 
 

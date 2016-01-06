@@ -17,8 +17,16 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-@ParametersAreNonnullByDefault
-package org.sonarsource.git;
+package org.sonarsource.scm.git;
 
-import javax.annotation.ParametersAreNonnullByDefault;
+import org.junit.Test;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class GitPluginTest {
+
+  @Test
+  public void getExtensions() {
+    assertThat(new GitPlugin().getExtensions()).hasSize(2);
+  }
+}

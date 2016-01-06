@@ -17,16 +17,16 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.git;
+package org.sonarsource.scm.git;
 
-import org.junit.Test;
+import java.util.Arrays;
+import java.util.List;
+import org.sonar.api.SonarPlugin;
 
-import static org.assertj.core.api.Assertions.assertThat;
+public final class GitPlugin extends SonarPlugin {
 
-public class GitPluginTest {
-
-  @Test
-  public void getExtensions() {
-    assertThat(new GitPlugin().getExtensions()).hasSize(2);
+  @Override
+  public List getExtensions() {
+    return Arrays.asList(GitScmProvider.class, JGitBlameCommand.class);
   }
 }

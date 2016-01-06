@@ -17,16 +17,33 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package org.sonarsource.git;
+package org.sonarsource.scm.git;
 
-import java.util.Arrays;
-import java.util.List;
-import org.sonar.api.SonarPlugin;
+import org.sonar.api.batch.scm.BlameCommand;
+import org.sonar.api.batch.scm.ScmProvider;
 
-public final class GitPlugin extends SonarPlugin {
+import java.io.File;
+
+public class GitScmProvider extends ScmProvider {
+
+  private final JGitBlameCommand jgitBlameCommand;
+
+  public GitScmProvider(JGitBlameCommand jgitBlameCommand) {
+    this.jgitBlameCommand = jgitBlameCommand;
+  }
 
   @Override
-  public List getExtensions() {
-    return Arrays.asList(GitScmProvider.class, JGitBlameCommand.class);
+  public String key() {
+    return "git";
+  }
+
+  @Override
+  public boolean supports(File baseDir) {
+    return new File(baseDir, ".git").exists();
+  }
+
+  @Override
+  public BlameCommand blameCommand() {
+    return this.jgitBlameCommand;
   }
 }
