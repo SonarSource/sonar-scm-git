@@ -1,5 +1,5 @@
 /*
- * Git :: Integration Tests
+ * Git Plugin Integration Tests
  * Copyright (C) 2014-2016 SonarSource SA
  * mailto:contact AT sonarsource DOT com
  *
@@ -26,17 +26,15 @@ import com.sonar.orchestrator.build.BuildResult;
 import com.sonar.orchestrator.build.MavenBuild;
 import com.sonar.orchestrator.locator.FileLocation;
 import com.sonar.orchestrator.util.ZipUtils;
-import com.sonar.orchestrator.version.Version;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
@@ -49,7 +47,6 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.rules.TemporaryFolder;
 import org.sonar.wsclient.jsonsimple.JSONArray;
 import org.sonar.wsclient.jsonsimple.JSONObject;
 import org.sonar.wsclient.jsonsimple.JSONValue;
@@ -60,25 +57,11 @@ public class GitTest {
   public static final File PROJECTS_DIR = new File("target/projects");
   public static final File SOURCES_DIR = new File("scm-repo");
 
-  private static Version artifactVersion;
-
-  private static Version artifactVersion() {
-    if (artifactVersion == null) {
-      try (FileInputStream fis = new FileInputStream(new File("../target/maven-archiver/pom.properties"))) {
-        Properties props = new Properties();
-        props.load(fis);
-        artifactVersion = Version.create(props.getProperty("version"));
-        return artifactVersion;
-      } catch (IOException e) {
-        throw new IllegalStateException(e);
-      }
-    }
-    return artifactVersion;
-  }
-
   @ClassRule
   public static Orchestrator orchestrator = Orchestrator.builderEnv()
-    .addPlugin(FileLocation.of("../target/sonar-scm-git-plugin-" + artifactVersion() + ".jar"))
+    .addPlugin(FileLocation.of(new FileLocator()
+      .byWildcardMavenArtifactFilename(Paths.get("../sonar-scm-git-plugin/target"), "sonar-scm-git-plugin-*.jar")
+      .get()))
     .setOrchestratorProperty("javaVersion", "LATEST_RELEASE")
     .addPlugin("java")
     .build();
@@ -87,9 +70,6 @@ public class GitTest {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
-
-  @Rule
-  public TemporaryFolder temp = new TemporaryFolder();
 
   @Before
   public void deleteData() {

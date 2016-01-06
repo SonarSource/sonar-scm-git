@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.sonarsource.parent</groupId>
@@ -7,13 +8,26 @@
     <version>26</version>
   </parent>
   <groupId>org.sonarsource.scm.git</groupId>
-  <artifactId>sonar-scm-git-plugin</artifactId>
-  <name>SonarQube :: Plugins :: SCM :: Git</name>
-  <packaging>sonar-plugin</packaging>
+  <artifactId>sonar-scm-git</artifactId>
+  <packaging>pom</packaging>
   <version>1.2-SNAPSHOT</version>
-  <description>Git SCM Provider</description>
+  <name>SonarQube SCM Git</name>
+  <description>Git SCM Provider for SonarQube</description>
   <url>http://redirect.sonarsource.com/plugins/scmgit.html</url>
   <inceptionYear>2014</inceptionYear>
+
+  <modules>
+    <module>sonar-scm-git-plugin</module>
+  </modules>
+
+  <properties>
+    <!-- to be moved to parent pom -->
+    <artifactory.url>https://repox.sonarsource.com</artifactory.url>
+    <artifactory.repo>sonarsource-public-qa</artifactory.repo>
+
+    <gitRepositoryName>sonar-scm-git</gitRepositoryName>
+  </properties>
+
 
   <organization>
     <name>SonarSource</name>
@@ -42,74 +56,104 @@
     <url>https://github.com/SonarSource/sonar-scm-git</url>
     <tag>HEAD</tag>
   </scm>
-  
+
   <issueManagement>
     <system>jira</system>
     <url>https://jira.sonarsource.com/browse/SONARSCGIT</url>
   </issueManagement>
-  
+
   <ciManagement>
     <system>travis-ci</system>
     <url>https://travis-ci.org/SonarSource/sonar-scm-git</url>
   </ciManagement>
 
-  <properties>
-    <sonar.buildVersion>5.0</sonar.buildVersion>
-    <sonar.pluginName>Git</sonar.pluginName>
-    <sonar.pluginClass>org.sonarsource.scm.git.GitPlugin</sonar.pluginClass>
-  </properties>
+  <profiles>
+    <profile>
+      <id>its</id>
+      <modules>
+        <module>its</module>
+      </modules>
+    </profile>
 
+    <profile>
+      <id>deploy-sonarsource</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-enforcer-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>enforce-scm-repo-property</id>
+                <goals>
+                  <goal>enforce</goal>
+                </goals>
+                <configuration>
+                  <rules>
+                    <requireProperty>
+                      <property>gitRepositoryName</property>
+                      <message>You must set name of Git repository in your pom</message>
+                    </requireProperty>
+                  </rules>
+                  <fail>true</fail>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.jfrog.buildinfo</groupId>
+            <artifactId>artifactory-maven-plugin</artifactId>
+            <version>2.4.0</version>
+            <inherited>false</inherited>
+            <executions>
+              <execution>
+                <id>build-info</id>
+                <goals>
+                  <goal>publish</goal>
+                </goals>
+                <configuration>
+                  <artifactory>
+                    <envVarsExcludePatterns>
+                      *password*,*PASSWORD*,*secret*,*MAVEN_CMD_LINE_ARGS*,sun.java.command,*token*,*TOKEN*,*LOGIN*,*login*
+                    </envVarsExcludePatterns>
+                    <includeEnvVars>true</includeEnvVars>
+                    <timeoutSec>60</timeoutSec>
+                  </artifactory>
+                  <deployProperties>
+                    <vcs.revision>{{GIT_COMMIT|TRAVIS_COMMIT}}</vcs.revision>
+                    <build.name>${gitRepositoryName}</build.name>
+                    <build.number>{{TRAVIS_BUILD_NUMBER|BUILD_ID}}</build.number>
+                  </deployProperties>
+                  <licenses>
+                    <autoDiscover>true</autoDiscover>
+                    <includePublishedArtifacts>false</includePublishedArtifacts>
+                    <runChecks>true</runChecks>
+                    <scopes>project,provided</scopes>
+                    <violationRecipients>licences-control@sonarsource.com</violationRecipients>
+                  </licenses>
+                  <publisher>
+                    <contextUrl>${artifactory.url}</contextUrl>
+                    <username>${artifactory.user}</username>
+                    <password>${artifactory.password}</password>
+                    <repoKey>${artifactory.repo}</repoKey>
+                    <snapshotRepoKey>${artifactory.repo}</snapshotRepoKey>
+                    <publishBuildInfo>true</publishBuildInfo>
+                    <publishArtifacts>true</publishArtifacts>
+                  </publisher>
+                  <buildInfo>
+                    <buildName>${gitRepositoryName}</buildName>
+                    <buildNumber>{{TRAVIS_BUILD_NUMBER|BUILD_ID}}</buildNumber>
+                    <buildUrl>{{CI_BUILD_URL|BUILD_URL}}</buildUrl>
+                    <vcsRevision>{{GIT_COMMIT|TRAVIS_COMMIT}}</vcsRevision>
+                  </buildInfo>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
 
-  <dependencies>
-    <dependency>
-      <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
-      <version>2.0.3</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.codehaus.sonar</groupId>
-      <artifactId>sonar-plugin-api</artifactId>
-      <version>${sonar.buildVersion}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jgit</groupId>
-      <artifactId>org.eclipse.jgit</artifactId>
-      <version>3.6.2.201501210735-r</version>
-      <exclusions>
-        <exclusion>
-          <groupId>commons-logging</groupId>
-          <artifactId>commons-logging</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-
-    <!-- unit tests -->
-    <dependency>
-      <groupId>org.codehaus.sonar</groupId>
-      <artifactId>sonar-testing-harness</artifactId>
-      <version>${sonar.buildVersion}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.assertj</groupId>
-      <artifactId>assertj-core</artifactId>
-      <version>2.2.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <version>1.10.19</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>1.1.2</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
+  </profiles>
 
 </project>

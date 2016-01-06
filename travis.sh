@@ -7,72 +7,64 @@ function installTravisTools {
   curl -sSL https://github.com/SonarSource/travis-utils/tarball/v21 | tar zx --strip-components 1 -C ~/.local                                                    
   source ~/.local/bin/install                                                                                                                                    
 }
+installTravisTools
 
 function strongEcho {
   echo ""
   echo "================ $1 ================="
 }
 
-case "$TARGET" in
+if [ "${TRAVIS_BRANCH}" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+  strongEcho 'Build, deploy and analyze master'
 
-CI)
-  if [ "$TRAVIS_PULL_REQUEST" != "false" ] && [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then
-    strongEcho 'Build and analyze commit in master'
-    # this commit is master must be built and analyzed (with upload of report)
-    export MAVEN_OPTS="-Xmx1G -Xms128m"
-    mvn org.jacoco:jacoco-maven-plugin:prepare-agent verify sonar:sonar \
-      -Pcoverage-per-test \
-      -Dmaven.test.redirectTestOutputToFile=false  \
+  # Do not deploy a SNAPSHOT version but the release version related to this build
+  ./set_maven_build_version.sh $TRAVIS_BUILD_NUMBER
+
+  export MAVEN_OPTS="-Xmx1G -Xms128m"
+  mvn org.jacoco:jacoco-maven-plugin:prepare-agent deploy sonar:sonar \
+      -Pcoverage-per-test,sonarsource-public-repo,deploy-sonarsource \
+      -Dmaven.test.redirectTestOutputToFile=false \
+      -Dartifactory.user=$REPOX_QA_DEPLOY_USERNAME \
+      -Dartifactory.password=$REPOX_QA_DEPLOY_PASSWORD \
       -Dsonar.host.url=$SONAR_HOST_URL \
-      -Dsonar.login=$SONAR_TOKEN \
+      -Dsonar.login=$SONAR_TOKEN
+      -s settings.xml \
       -B -e -V
 
+elif [ "$TRAVIS_PULL_REQUEST" != "false" ] && [ -n "${GITHUB_TOKEN-}" ]; then
+  strongEcho 'Build and analyze pull request, no deploy'
 
-  elif [ "$TRAVIS_PULL_REQUEST" != "false" ] && [ "$TRAVIS_SECURE_ENV_VARS" == "true"]; then
-    # For security reasons environment variables are not available on the pull requests
-    # coming from outside repositories
-    # http://docs.travis-ci.com/user/pull-requests/#Security-Restrictions-when-testing-Pull-Requests
-    # That's why the analysis does not need to be executed if the variable SONAR_GITHUB_OAUTH is not defined.
+  # No need for Maven phase "install" as the generated JAR file does not need to be installed
+  # in Maven local repository. Phase "verify" is enough.
 
-    strongEcho 'Build and analyze pull request'
-    # this pull request must be built and analyzed (without upload of report)
-    mvn org.jacoco:jacoco-maven-plugin:prepare-agent verify sonar:sonar \
-      -Pcoverage-per-test \
+  mvn org.jacoco:jacoco-maven-plugin:prepare-agent verify sonar:sonar \
+      -Psonarsource-public-repo \
       -Dmaven.test.redirectTestOutputToFile=false \
       -Dsonar.analysis.mode=issues \
       -Dsonar.github.pullRequest=$TRAVIS_PULL_REQUEST \
       -Dsonar.github.repository=$TRAVIS_REPO_SLUG \
       -Dsonar.github.oauth=$GITHUB_TOKEN \
       -Dsonar.host.url=$SONAR_HOST_URL \
-      -Dsonar.login=$SONAR_TOKEN
+      -Dsonar.login=$SONAR_TOKEN \
+      -s settings.xml \
       -B -e -V
 
+else
+  strongEcho 'Build, no analysis, no deploy'
 
-  else
-    strongEcho 'Build, no analysis'
-    # Build branch, without any analysis
+  # No need for Maven phase "install" as the generated JAR file does not need to be installed
+  # in Maven local repository. Phase "verify" is enough.
 
-    # No need for Maven goal "install" as the generated JAR file does not need to be installed
-    # in Maven local repository
-    mvn verify -Dmaven.test.redirectTestOutputToFile=false -B -e -V
-  fi
-  ;;
+  mvn verify \
+      -Psonarsource-public-repo \
+      -Dmaven.test.redirectTestOutputToFile=false \
+      -s settings.xml \
+      -B -e -V
+fi
 
-IT)
-  installTravisTools
-  if [ "${SQ_VERSION}" == "DEV" ]
-  then
-    build_snapshot "SonarSource/sonarqube"
-  fi
 
-  mvn verify -B -e -V -Dsource.skip=true -Denforcer.skip=true -Danimal.sniffer.skip=true -Dmaven.test.skip=true
-  cd its
-  mvn -Dsonar.runtimeVersion="$SQ_VERSION" -Dmaven.test.redirectTestOutputToFile=false verify
-  ;;
+strongEcho 'Run integration tests on minimal supported version of SonarQube'
 
-*)
-  echo "Unexpected TARGET value: $TARGET"
-  exit 1
-  ;;
-
-esac
+# Min supported version of SQ (5.0) can't be tested as it already embeds git 5.0.
+# Orchestrator does not allow to uninstall it.
+./run_integration_tests.sh "5.1"

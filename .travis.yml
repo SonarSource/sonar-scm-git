@@ -8,17 +8,12 @@ jdk:
 script:
   - ./travis.sh
 
-env:
-  matrix:
-    - TARGET=CI
-    - TARGET=IT SQ_VERSION=5.1
-    - TARGET=IT SQ_VERSION=DEV
-
 cache:
   directories:
     - $HOME/.m2/repository
-    # for integration tests and analysis
     - $HOME/.sonar
 
 notifications:
   email: false
+  webhooks:
+    - secure: "Saku2Paw2KFOOyq06nOINwYIDXRzjUNjWsT69KAANdo2xAA4sdqGj+xzmge7T8UepIB/nqJAirY1NTT0ZdtAQ1NZ6XEVFklD2bG0JRtEMSquhoItdm2FvaGcnWnaUI/rnsn8VdTgbEHb2RKlDFyd/DZFBdgx1Wb2ek86u8WpGro="
