@@ -38,7 +38,7 @@ CI)
     strongEcho 'Build and analyze pull request'
     # this pull request must be built and analyzed (without upload of report)
     mvn org.jacoco:jacoco-maven-plugin:prepare-agent verify sonar:sonar \
-      -Pcoverage-per-test
+      -Pcoverage-per-test \
       -Dmaven.test.redirectTestOutputToFile=false \
       -Dsonar.analysis.mode=issues \
       -Dsonar.github.pullRequest=$TRAVIS_PULL_REQUEST \
@@ -46,8 +46,8 @@ CI)
       -Dsonar.github.oauth=$SONAR_GITHUB_OAUTH \
       -Dsonar.host.url=$SONAR_HOST_URL \
       -Dsonar.login=$SONAR_LOGIN \
-      -Dsonar.password=$SONAR_PASSWORD
-      -B -e -V \
+      -Dsonar.password=$SONAR_PASSWORD \
+      -B -e -V
 
 
   else
