@@ -16,7 +16,7 @@ function strongEcho {
 case "$TARGET" in
 
 CI)
-  if [ "${TRAVIS_BRANCH}" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+  if [ "$TRAVIS_PULL_REQUEST" != "false" ] && [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_SECURE_ENV_VARS" == "true" ]; then
     strongEcho 'Build and analyze commit in master'
     # this commit is master must be built and analyzed (with upload of report)
     export MAVEN_OPTS="-Xmx1G -Xms128m"
@@ -24,8 +24,7 @@ CI)
       -Pcoverage-per-test \
       -Dmaven.test.redirectTestOutputToFile=false  \
       -Dsonar.host.url=$SONAR_HOST_URL \
-      -Dsonar.login=$SONAR_LOGIN \
-      -Dsonar.password=$SONAR_PASSWORD \
+      -Dsonar.login=$SONAR_TOKEN \
       -B -e -V
 
 
@@ -43,10 +42,9 @@ CI)
       -Dsonar.analysis.mode=issues \
       -Dsonar.github.pullRequest=$TRAVIS_PULL_REQUEST \
       -Dsonar.github.repository=$TRAVIS_REPO_SLUG \
-      -Dsonar.github.oauth=$SONAR_GITHUB_OAUTH \
+      -Dsonar.github.oauth=$GITHUB_TOKEN \
       -Dsonar.host.url=$SONAR_HOST_URL \
-      -Dsonar.login=$SONAR_LOGIN \
-      -Dsonar.password=$SONAR_PASSWORD \
+      -Dsonar.login=$SONAR_TOKEN
       -B -e -V
 
 
