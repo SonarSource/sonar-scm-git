@@ -6,6 +6,7 @@ set -euo pipefail
 
 # required version of SonarQube
 SONARQUBE_VERSION=$1
+shift
 
 cd its
-mvn verify -Dsonar.runtimeVersion=$SONARQUBE_VERSION -e -B -V -U
+mvn verify -Dsonar.runtimeVersion=$SONARQUBE_VERSION -e -B -V -U $*
