@@ -65,6 +65,8 @@ fi
 
 strongEcho 'Run integration tests on minimal supported version of SonarQube'
 
+cat ~/.m2/settings.xml
+
 # Min supported version of SQ (5.0) can't be tested as it already embeds git 5.0.
 # Orchestrator does not allow to uninstall it.
-./run_integration_tests.sh "5.1" "-s settings.xml -Psonarsource-public-repo"
+#./run_integration_tests.sh "5.1" "-s settings.xml -Psonarsource-public-repo"
