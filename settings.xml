@@ -8,7 +8,7 @@
       <id>sonarsource-public-repo</id>
       <repositories>
         <repository>
-          <id>repox</id>
+          <id>sonarsource-public-repo</id>
           <name>sonarsource-public-repo</name>
           <url>https://repox.sonarsource.com/sonarsource</url>
           <releases>
@@ -21,7 +21,7 @@
       </repositories>
       <pluginRepositories>
         <pluginRepository>
-          <id>repox</id>
+          <id>sonarsource-public-repo</id>
           <name>sonarsource-public-repo</name>
           <url>https://repox.sonarsource.com/sonarsource</url>
           <releases>

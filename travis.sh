@@ -27,7 +27,7 @@ if [ "${TRAVIS_BRANCH}" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; 
       -Dartifactory.user=$REPOX_QA_DEPLOY_USERNAME \
       -Dartifactory.password=$REPOX_QA_DEPLOY_PASSWORD \
       -Dsonar.host.url=$SONAR_HOST_URL \
-      -Dsonar.login=$SONAR_TOKEN
+      -Dsonar.login=$SONAR_TOKEN \
       -s settings.xml \
       -B -e -V
 
