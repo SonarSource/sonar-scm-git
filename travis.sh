@@ -2,12 +2,12 @@
 
 set -euo pipefail
 
-function installTravisTools {
+function configureTravis {
   mkdir ~/.local
   curl -sSL https://github.com/SonarSource/travis-utils/tarball/master | tar zx --strip-components 1 -C ~/.local
   source ~/.local/bin/install                                                                                                                                    
 }
-installTravisTools
+configureTravis
 
 function strongEcho {
   echo ""
@@ -24,8 +24,6 @@ if [ "${TRAVIS_BRANCH}" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; 
   mvn org.jacoco:jacoco-maven-plugin:prepare-agent deploy sonar:sonar \
       -Pcoverage-per-test,deploy-sonarsource \
       -Dmaven.test.redirectTestOutputToFile=false \
-      -Dartifactory.user=$REPOX_QA_DEPLOY_USERNAME \
-      -Dartifactory.password=$REPOX_QA_DEPLOY_PASSWORD \
       -Dsonar.host.url=$SONAR_HOST_URL \
       -Dsonar.login=$SONAR_TOKEN \
       -B -e -V

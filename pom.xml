@@ -21,13 +21,12 @@
   </modules>
 
   <properties>
-    <!-- to be moved to parent pom -->
-    <artifactory.url>https://repox.sonarsource.com</artifactory.url>
-    <artifactory.repo>sonarsource-public-qa</artifactory.repo>
-
+    <!-- used for deployment to SonarSource Artifactory -->
     <gitRepositoryName>sonar-scm-git</gitRepositoryName>
-  </properties>
 
+    <!-- required for deployment (no wagon hack in settings.xml). Parent 26 still declares 3.0.5. -->
+    <maven.min.version>3.2</maven.min.version>
+  </properties>
 
   <organization>
     <name>SonarSource</name>
@@ -84,7 +83,7 @@
             <artifactId>maven-enforcer-plugin</artifactId>
             <executions>
               <execution>
-                <id>enforce-scm-repo-property</id>
+                <id>enforce-deploy-settings</id>
                 <goals>
                   <goal>enforce</goal>
                 </goals>
@@ -94,6 +93,18 @@
                       <property>gitRepositoryName</property>
                       <message>You must set name of Git repository in your pom</message>
                     </requireProperty>
+                    <requireEnvironmentVariable>
+                      <variableName>ARTIFACTORY_URL</variableName>
+                    </requireEnvironmentVariable>
+                    <requireEnvironmentVariable>
+                      <variableName>ARTIFACTORY_DEPLOY_REPO</variableName>
+                    </requireEnvironmentVariable>
+                    <requireEnvironmentVariable>
+                      <variableName>ARTIFACTORY_DEPLOY_USERNAME</variableName>
+                    </requireEnvironmentVariable>
+                    <requireEnvironmentVariable>
+                      <variableName>ARTIFACTORY_DEPLOY_PASSWORD</variableName>
+                    </requireEnvironmentVariable>
                   </rules>
                   <fail>true</fail>
                 </configuration>
@@ -101,6 +112,8 @@
             </executions>
           </plugin>
           <plugin>
+            <!-- this maven plugin is not deployed in Maven Central. It should be downloaded
+            from JFrog JCenter or from SonarSource repositories -->
             <groupId>org.jfrog.buildinfo</groupId>
             <artifactId>artifactory-maven-plugin</artifactId>
             <version>2.4.0</version>
@@ -121,8 +134,9 @@
                   </artifactory>
                   <deployProperties>
                     <vcs.revision>{{GIT_COMMIT|TRAVIS_COMMIT}}</vcs.revision>
+                    <vcs.branch>{{GIT_BRANCH|TRAVIS_BRANCH}}</vcs.branch>
                     <build.name>${gitRepositoryName}</build.name>
-                    <build.number>{{TRAVIS_BUILD_NUMBER|BUILD_ID}}</build.number>
+                    <build.number>{{BUILD_ID|TRAVIS_BUILD_NUMBER}}</build.number>
                   </deployProperties>
                   <licenses>
                     <autoDiscover>true</autoDiscover>
@@ -132,17 +146,16 @@
                     <violationRecipients>licences-control@sonarsource.com</violationRecipients>
                   </licenses>
                   <publisher>
-                    <contextUrl>${artifactory.url}</contextUrl>
-                    <username>${artifactory.user}</username>
-                    <password>${artifactory.password}</password>
-                    <repoKey>${artifactory.repo}</repoKey>
-                    <snapshotRepoKey>${artifactory.repo}</snapshotRepoKey>
+                    <contextUrl>${env.ARTIFACTORY_URL}</contextUrl>
+                    <repoKey>${env.ARTIFACTORY_DEPLOY_REPO}</repoKey>
+                    <username>${env.ARTIFACTORY_DEPLOY_USERNAME}</username>
+                    <password>${env.ARTIFACTORY_DEPLOY_PASSWORD}</password>
                     <publishBuildInfo>true</publishBuildInfo>
                     <publishArtifacts>true</publishArtifacts>
                   </publisher>
                   <buildInfo>
                     <buildName>${gitRepositoryName}</buildName>
-                    <buildNumber>{{TRAVIS_BUILD_NUMBER|BUILD_ID}}</buildNumber>
+                    <buildNumber>{{BUILD_ID|TRAVIS_BUILD_NUMBER}}</buildNumber>
                     <buildUrl>{{CI_BUILD_URL|BUILD_URL}}</buildUrl>
                     <vcsRevision>{{GIT_COMMIT|TRAVIS_COMMIT}}</vcsRevision>
                   </buildInfo>
