@@ -28,7 +28,6 @@ import com.sonar.orchestrator.locator.FileLocation;
 import com.sonar.orchestrator.util.ZipUtils;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -59,9 +58,7 @@ public class GitTest {
 
   @ClassRule
   public static Orchestrator orchestrator = Orchestrator.builderEnv()
-    .addPlugin(FileLocation.of(new FileLocator()
-      .byWildcardMavenArtifactFilename(Paths.get("../sonar-scm-git-plugin/target"), "sonar-scm-git-plugin-*.jar")
-      .get()))
+    .addPlugin(FileLocation.byWildcardMavenFilename(new File("../sonar-scm-git-plugin/target"), "sonar-scm-git-plugin-*.jar"))
     .setOrchestratorProperty("javaVersion", "LATEST_RELEASE")
     .addPlugin("java")
     .build();
