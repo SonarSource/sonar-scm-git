@@ -4,7 +4,7 @@ set -euo pipefail
 
 function configureTravis {
   mkdir ~/.local
-  curl -sSL https://github.com/SonarSource/travis-utils/tarball/v22 | tar zx --strip-components 1 -C ~/.local
+  curl -sSL https://github.com/SonarSource/travis-utils/tarball/master | tar zx --strip-components 1 -C ~/.local
   source ~/.local/bin/install                                                                                                                                    
 }
 configureTravis
@@ -17,7 +17,7 @@ function strongEcho {
 if [ "${TRAVIS_BRANCH}" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
   strongEcho 'Build, deploy and analyze master'
 
-  SONAR_PROJECT_VERSION=`mvn help:evaluate -Dexpression=project.version | grep -v '^\[\|Download\w\+\:'`
+  SONAR_PROJECT_VERSION=`maven_expression "project.version"`
 
   # Do not deploy a SNAPSHOT version but the release version related to this build
   set_maven_build_version $TRAVIS_BUILD_NUMBER
