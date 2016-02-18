@@ -19,10 +19,18 @@
  */
 package org.sonarsource.scm.git;
 
-import java.util.List;
-
-import java.util.LinkedList;
 import com.google.common.io.Closeables;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
@@ -39,15 +47,6 @@ import org.sonar.api.batch.scm.BlameLine;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.DateUtils;
 import org.sonar.api.utils.MessageException;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 import static java.lang.String.format;
 import static org.mockito.Mockito.mock;
@@ -94,23 +93,23 @@ public class JGitBlameCommandTest {
     Date revisionDate1 = DateUtils.parseDateTime("2012-07-17T16:12:48+0200");
     String revision1 = "6b3aab35a3ea32c1636fee56f996e677653c48ea";
     String author1 = "david@gageot.net";
-    
+
     // second commit, which has a commit date different than the author date
     Date revisionDate2 = DateUtils.parseDateTime("2015-05-19T13:31:09+0200");
     String revision2 = "0d269c1acfb8e6d4d33f3c43041eb87e0df0f5e7";
     String author2 = "duarte.meneses@sonarsource.com";
-    
+
     List<BlameLine> expectedBlame = new LinkedList<>();
-    for(int i=0; i<25;i++) {
+    for (int i = 0; i < 25; i++) {
       expectedBlame.add(new BlameLine().revision(revision1).date(revisionDate1).author(author1));
     }
-    for(int i=0; i<3;i++) {
+    for (int i = 0; i < 3; i++) {
       expectedBlame.add(new BlameLine().revision(revision2).date(revisionDate2).author(author2));
     }
-    for(int i=0; i<1;i++) {
+    for (int i = 0; i < 1; i++) {
       expectedBlame.add(new BlameLine().revision(revision1).date(revisionDate1).author(author1));
     }
-    
+
     verify(blameResult).blameResult(inputFile, expectedBlame);
   }
 
@@ -240,7 +239,7 @@ public class JGitBlameCommandTest {
     jGitBlameCommand.blame(input, blameResult);
   }
 
-  private static void javaUnzip(File zip, File toDir) {
+  public static void javaUnzip(File zip, File toDir) {
     try {
       try (ZipFile zipFile = new ZipFile(zip)) {
         Enumeration<? extends ZipEntry> entries = zipFile.entries();

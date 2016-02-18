@@ -19,10 +19,10 @@
  */
 package org.sonarsource.scm.git;
 
+import java.io.File;
+import org.eclipse.jgit.lib.RepositoryBuilder;
 import org.sonar.api.batch.scm.BlameCommand;
 import org.sonar.api.batch.scm.ScmProvider;
-
-import java.io.File;
 
 public class GitScmProvider extends ScmProvider {
 
@@ -39,7 +39,8 @@ public class GitScmProvider extends ScmProvider {
 
   @Override
   public boolean supports(File baseDir) {
-    return new File(baseDir, ".git").exists();
+    RepositoryBuilder builder = new RepositoryBuilder().findGitDir(baseDir);
+    return builder.getGitDir() != null;
   }
 
   @Override

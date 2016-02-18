@@ -29,6 +29,7 @@ import org.sonar.api.scan.filesystem.PathResolver;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.sonarsource.scm.git.JGitBlameCommandTest.javaUnzip;
 
 public class GitScmProviderTest {
 
@@ -56,9 +57,10 @@ public class GitScmProviderTest {
     File baseDirEmpty = temp.newFolder();
     assertThat(new GitScmProvider(mock(JGitBlameCommand.class)).supports(baseDirEmpty)).isFalse();
 
-    File gitBaseDir = temp.newFolder();
-    new File(gitBaseDir, ".git").mkdir();
-    assertThat(new GitScmProvider(mockCommand()).supports(gitBaseDir)).isTrue();
+    File projectDir = temp.newFolder();
+    javaUnzip(new File("test-repos/dummy-git.zip"), projectDir);
+    File baseDir = new File(projectDir, "dummy-git");
+    assertThat(new GitScmProvider(mockCommand()).supports(baseDir)).isTrue();
   }
 
   private static JGitBlameCommand mockCommand() {
