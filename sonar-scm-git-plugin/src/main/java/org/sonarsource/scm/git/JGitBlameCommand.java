@@ -59,7 +59,7 @@ public class JGitBlameCommand extends BlameCommand {
     try {
       Git git = Git.wrap(repo);
       File gitBaseDir = repo.getWorkTree();
-      ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() + 1);
+      ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
       List<Future<Void>> tasks = submitTasks(input, output, git, gitBaseDir, executorService);
       waitForTaskToComplete(executorService, tasks);
     } finally {
@@ -118,6 +118,7 @@ public class JGitBlameCommand extends BlameCommand {
 
   private void blame(BlameOutput output, Git git, File gitBaseDir, InputFile inputFile) throws GitAPIException {
     String filename = pathResolver.relativePath(gitBaseDir, inputFile.file());
+    LOG.debug("Blame file {}", filename);
     org.eclipse.jgit.blame.BlameResult blameResult;
     try {
       blameResult = git.blame()
