@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
@@ -47,8 +48,10 @@ import org.sonar.api.batch.scm.BlameLine;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.DateUtils;
 import org.sonar.api.utils.MessageException;
+import org.sonar.api.utils.System2;
 
 import static java.lang.String.format;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -232,6 +235,34 @@ public class JGitBlameCommandTest {
 
     // Emulate a new file
     FileUtils.copyFile(new File(baseDir, relativePath), new File(baseDir, relativePath2));
+
+    BlameOutput blameResult = mock(BlameOutput.class);
+
+    when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile, inputFile2));
+    jGitBlameCommand.blame(input, blameResult);
+  }
+
+  @Test
+  public void dontFailOnSymlink() throws IOException {
+    assumeTrue(!System2.INSTANCE.isOsWindows());
+    File projectDir = temp.newFolder();
+    javaUnzip(new File("test-repos/dummy-git.zip"), projectDir);
+
+    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
+
+    File baseDir = new File(projectDir, "dummy-git");
+    fs.setBaseDir(baseDir);
+    String relativePath = DUMMY_JAVA;
+    String relativePath2 = "src/main/java/org/dummy/Dummy2.java";
+    DefaultInputFile inputFile = new DefaultInputFile("foo", relativePath)
+      .setFile(new File(baseDir, relativePath));
+    fs.add(inputFile);
+    DefaultInputFile inputFile2 = new DefaultInputFile("foo", relativePath2)
+      .setFile(new File(baseDir, relativePath2));
+    fs.add(inputFile2);
+
+    // Create symlink
+    Files.createSymbolicLink(inputFile2.file().toPath(), inputFile.file().toPath());
 
     BlameOutput blameResult = mock(BlameOutput.class);
 

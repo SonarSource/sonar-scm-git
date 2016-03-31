@@ -19,6 +19,15 @@
  */
 package org.sonarsource.scm.git;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.RawTextComparator;
@@ -31,16 +40,6 @@ import org.sonar.api.batch.scm.BlameCommand;
 import org.sonar.api.batch.scm.BlameLine;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.MessageException;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 public class JGitBlameCommand extends BlameCommand {
 
@@ -129,15 +128,19 @@ public class JGitBlameCommand extends BlameCommand {
       throw new IllegalStateException("Unable to blame file " + inputFile.relativePath(), e);
     }
     List<BlameLine> lines = new ArrayList<>();
+    if (blameResult == null) {
+      LOG.debug("Unable to blame file {}. It is probably a symlink.", inputFile.relativePath());
+      return;
+    }
     for (int i = 0; i < blameResult.getResultContents().size(); i++) {
       if (blameResult.getSourceAuthor(i) == null || blameResult.getSourceCommit(i) == null) {
-        LOG.debug("Unable to blame file " + inputFile.relativePath() +
-          ". No blame info at line " + (i + 1) + ". Is file committed?"
-          + " Author: " + blameResult.getSourceAuthor(i)
-          + " Source commit: " + blameResult.getSourceCommit(i));
+        LOG.debug("Unable to blame file {}. No blame info at line {}. Is file committed? [Author: {} Source commit: {}]", inputFile.relativePath(), i + 1,
+          blameResult.getSourceAuthor(i), blameResult.getSourceCommit(i));
         return;
       }
-      lines.add(new org.sonar.api.batch.scm.BlameLine().date(blameResult.getSourceCommitter(i).getWhen()).revision(blameResult.getSourceCommit(i).getName())
+      lines.add(new org.sonar.api.batch.scm.BlameLine()
+        .date(blameResult.getSourceCommitter(i).getWhen())
+        .revision(blameResult.getSourceCommit(i).getName())
         .author(blameResult.getSourceAuthor(i).getEmailAddress()));
     }
     if (lines.size() == inputFile.lines() - 1) {
