@@ -9,8 +9,9 @@
   <artifactId>sonar-scm-git-plugin</artifactId>
   <packaging>sonar-plugin</packaging>
   <name>SonarQube :: Plugins :: SCM :: Git</name>
-  <description>Git SCM Provider</description>
-
+  <description>Git SCM Provider for SonarQube</description>
+  <url>http://redirect.sonarsource.com/plugins/scmgit.html</url>
+  
   <properties>
     <!-- Minimal supported version of SonarQube. It is defined in travis.sh for integration testing too. -->
     <sonar.apiVersion>5.0</sonar.apiVersion>
