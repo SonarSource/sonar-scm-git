@@ -30,7 +30,6 @@ import java.io.File;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,7 +38,6 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
-import org.apache.commons.lang3.time.DateUtils;
 import org.assertj.core.data.MapEntry;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -62,8 +60,6 @@ public class GitTest {
     .setOrchestratorProperty("javaVersion", "LATEST_RELEASE")
     .addPlugin("java")
     .build();
-
-  private boolean IS_5_2_OR_MORE = orchestrator.getServer().version().isGreaterThanOrEquals("5.2");
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -146,8 +142,8 @@ public class GitTest {
     final String author;
 
     public LineData(String revision, String datetime, String author) throws ParseException {
-      this.revision = IS_5_2_OR_MORE ? revision : null;
-      this.date = IS_5_2_OR_MORE ? DATETIME_FORMAT.parse(datetime) : DateUtils.truncate(DATETIME_FORMAT.parse(datetime), Calendar.DAY_OF_MONTH);
+      this.revision = revision;
+      this.date = DATETIME_FORMAT.parse(datetime);
       this.author = author;
     }
 
@@ -180,11 +176,9 @@ public class GitTest {
     JSONArray array = (JSONArray) obj.get("scm");
     for (Object anArray : array) {
       JSONArray item = (JSONArray) anArray;
-      // Time part was added in 5.2
       String dateOrDatetime = (String) item.get(2);
-      // Revision was added in 5.2
-      result.put(((Long) item.get(0)).intValue(), IS_5_2_OR_MORE ? new LineData((String) item.get(3),
-        dateOrDatetime, (String) item.get(1)) : new LineData(dateOrDatetime, (String) item.get(1)));
+      result.put(((Long) item.get(0)).intValue(), new LineData((String) item.get(3),
+        dateOrDatetime, (String) item.get(1)));
     }
     return result;
   }
