@@ -19,6 +19,7 @@
  */
 package org.sonarsource.scm.git;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -60,14 +61,15 @@ public class JGitBlameCommand extends BlameCommand {
       File gitBaseDir = repo.getWorkTree();
       ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
       List<Future<Void>> tasks = submitTasks(input, output, git, gitBaseDir, executorService);
-      waitForTaskToComplete(executorService, tasks);
+      executorService.shutdown();
+      waitForTaskToComplete(tasks);
     } finally {
       repo.close();
     }
   }
 
-  private static void waitForTaskToComplete(ExecutorService executorService, List<Future<Void>> tasks) {
-    executorService.shutdown();
+  @VisibleForTesting
+  static void waitForTaskToComplete(List<Future<Void>> tasks) {
     for (Future<Void> task : tasks) {
       try {
         task.get();
@@ -75,7 +77,10 @@ public class JGitBlameCommand extends BlameCommand {
         // Unwrap ExecutionException
         throw e.getCause() instanceof RuntimeException ? (RuntimeException) e.getCause() : new IllegalStateException(e.getCause());
       } catch (InterruptedException e) {
-        throw new IllegalStateException(e);
+        LOG.warn("Process was interrupted", e);
+        tasks.forEach(t -> t.cancel(true));
+        Thread.currentThread().interrupt();
+        return;
       }
     }
   }
