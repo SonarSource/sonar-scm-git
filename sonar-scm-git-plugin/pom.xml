@@ -14,7 +14,7 @@
   
   <properties>
     <!-- Minimal supported version of SonarQube. It is defined in travis.sh for integration testing too. -->
-    <sonar.apiVersion>5.0</sonar.apiVersion>
+    <sonar.apiVersion>5.6</sonar.apiVersion>
     <sonar.pluginName>Git</sonar.pluginName>
     <sonar.pluginClass>org.sonarsource.scm.git.GitPlugin</sonar.pluginClass>
   </properties>
@@ -27,7 +27,7 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.codehaus.sonar</groupId>
+      <groupId>org.sonarsource.sonarqube</groupId>
       <artifactId>sonar-plugin-api</artifactId>
       <version>${sonar.apiVersion}</version>
       <scope>provided</scope>
@@ -35,7 +35,7 @@
     <dependency>
       <groupId>org.eclipse.jgit</groupId>
       <artifactId>org.eclipse.jgit</artifactId>
-      <version>4.2.0.201601211800-r</version>
+      <version>4.6.0.201612231935-r</version>
       <exclusions>
         <exclusion>
           <groupId>commons-logging</groupId>
@@ -46,15 +46,15 @@
 
     <!-- unit tests -->
     <dependency>
-      <groupId>org.codehaus.sonar</groupId>
-      <artifactId>sonar-testing-harness</artifactId>
-      <version>${sonar.apiVersion}</version>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>2.2.0</version>
+      <version>3.6.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -64,9 +64,9 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>1.1.2</version>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.5</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

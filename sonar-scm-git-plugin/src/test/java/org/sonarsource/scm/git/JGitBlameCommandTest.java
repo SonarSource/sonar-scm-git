@@ -19,7 +19,6 @@
  */
 package org.sonarsource.scm.git;
 
-import com.google.common.io.Closeables;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -35,7 +34,6 @@ import java.util.concurrent.Future;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -47,6 +45,7 @@ import org.sonar.api.batch.fs.internal.DefaultInputFile;
 import org.sonar.api.batch.scm.BlameCommand.BlameInput;
 import org.sonar.api.batch.scm.BlameCommand.BlameOutput;
 import org.sonar.api.batch.scm.BlameLine;
+import org.sonar.api.internal.apachecommons.io.IOUtils;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.DateUtils;
 import org.sonar.api.utils.MessageException;
@@ -68,14 +67,11 @@ public class JGitBlameCommandTest {
   @Rule
   public TemporaryFolder temp = new TemporaryFolder();
 
-  private DefaultFileSystem fs;
   private BlameInput input;
 
   @Before
   public void prepare() throws IOException {
-    fs = new DefaultFileSystem();
     input = mock(BlameInput.class);
-    when(input.fileSystem()).thenReturn(fs);
   }
 
   @Test
@@ -86,9 +82,9 @@ public class JGitBlameCommandTest {
     JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
 
     File baseDir = new File(projectDir, "dummy-git");
-    fs.setBaseDir(baseDir);
-    DefaultInputFile inputFile = new DefaultInputFile("foo", DUMMY_JAVA)
-      .setFile(new File(baseDir, DUMMY_JAVA));
+    DefaultFileSystem fs = new DefaultFileSystem(baseDir);
+    when(input.fileSystem()).thenReturn(fs);
+    DefaultInputFile inputFile = new DefaultInputFile("foo", DUMMY_JAVA);
     fs.add(inputFile);
 
     BlameOutput blameResult = mock(BlameOutput.class);
@@ -130,9 +126,9 @@ public class JGitBlameCommandTest {
     // Delete .git
     FileUtils.forceDelete(new File(baseDir, ".git"));
 
-    fs.setBaseDir(baseDir);
-    DefaultInputFile inputFile = new DefaultInputFile("foo", DUMMY_JAVA)
-      .setFile(new File(baseDir, DUMMY_JAVA));
+    DefaultFileSystem fs = new DefaultFileSystem(baseDir);
+    when(input.fileSystem()).thenReturn(fs);
+    DefaultInputFile inputFile = new DefaultInputFile("foo", DUMMY_JAVA);
     fs.add(inputFile);
 
     BlameOutput blameResult = mock(BlameOutput.class);
@@ -152,9 +148,9 @@ public class JGitBlameCommandTest {
     JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
 
     File baseDir = new File(projectDir, "dummy-git-nested/dummy-project");
-    fs.setBaseDir(baseDir);
-    DefaultInputFile inputFile = new DefaultInputFile("foo", DUMMY_JAVA)
-      .setFile(new File(baseDir, DUMMY_JAVA));
+    DefaultFileSystem fs = new DefaultFileSystem(baseDir);
+    when(input.fileSystem()).thenReturn(fs);
+    DefaultInputFile inputFile = new DefaultInputFile("foo", DUMMY_JAVA);
     fs.add(inputFile);
 
     BlameOutput blameResult = mock(BlameOutput.class);
@@ -202,10 +198,10 @@ public class JGitBlameCommandTest {
     JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
 
     File baseDir = new File(projectDir, "dummy-git");
-    fs.setBaseDir(baseDir);
+    DefaultFileSystem fs = new DefaultFileSystem(baseDir);
+    when(input.fileSystem()).thenReturn(fs);
     String relativePath = DUMMY_JAVA;
-    DefaultInputFile inputFile = new DefaultInputFile("foo", relativePath)
-      .setFile(new File(baseDir, relativePath));
+    DefaultInputFile inputFile = new DefaultInputFile("foo", relativePath);
     fs.add(inputFile);
 
     // Emulate a modification
@@ -225,14 +221,13 @@ public class JGitBlameCommandTest {
     JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
 
     File baseDir = new File(projectDir, "dummy-git");
-    fs.setBaseDir(baseDir);
+    DefaultFileSystem fs = new DefaultFileSystem(baseDir);
+    when(input.fileSystem()).thenReturn(fs);
     String relativePath = DUMMY_JAVA;
     String relativePath2 = "src/main/java/org/dummy/Dummy2.java";
-    DefaultInputFile inputFile = new DefaultInputFile("foo", relativePath)
-      .setFile(new File(baseDir, relativePath));
+    DefaultInputFile inputFile = new DefaultInputFile("foo", relativePath);
     fs.add(inputFile);
-    DefaultInputFile inputFile2 = new DefaultInputFile("foo", relativePath2)
-      .setFile(new File(baseDir, relativePath2));
+    DefaultInputFile inputFile2 = new DefaultInputFile("foo", relativePath2);
     fs.add(inputFile2);
 
     // Emulate a new file
@@ -253,14 +248,13 @@ public class JGitBlameCommandTest {
     JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
 
     File baseDir = new File(projectDir, "dummy-git");
-    fs.setBaseDir(baseDir);
+    DefaultFileSystem fs = new DefaultFileSystem(baseDir);
+    when(input.fileSystem()).thenReturn(fs);
     String relativePath = DUMMY_JAVA;
     String relativePath2 = "src/main/java/org/dummy/Dummy2.java";
-    DefaultInputFile inputFile = new DefaultInputFile("foo", relativePath)
-      .setFile(new File(baseDir, relativePath));
+    DefaultInputFile inputFile = new DefaultInputFile("foo", relativePath);
     fs.add(inputFile);
-    DefaultInputFile inputFile2 = new DefaultInputFile("foo", relativePath2)
-      .setFile(new File(baseDir, relativePath2));
+    DefaultInputFile inputFile2 = new DefaultInputFile("foo", relativePath2);
     fs.add(inputFile2);
 
     // Create symlink
@@ -287,11 +281,8 @@ public class JGitBlameCommandTest {
               FileUtils.forceMkdir(parent);
             }
 
-            OutputStream fos = new FileOutputStream(to);
-            try {
+            try (OutputStream fos = new FileOutputStream(to)) {
               IOUtils.copy(zipFile.getInputStream(entry), fos);
-            } finally {
-              Closeables.closeQuietly(fos);
             }
           }
         }

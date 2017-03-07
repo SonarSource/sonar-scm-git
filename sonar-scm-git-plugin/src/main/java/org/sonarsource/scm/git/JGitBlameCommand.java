@@ -19,7 +19,6 @@
  */
 package org.sonarsource.scm.git;
 
-import com.google.common.annotations.VisibleForTesting;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -68,7 +67,6 @@ public class JGitBlameCommand extends BlameCommand {
     }
   }
 
-  @VisibleForTesting
   static void waitForTaskToComplete(List<Future<Void>> tasks) {
     for (Future<Void> task : tasks) {
       try {
