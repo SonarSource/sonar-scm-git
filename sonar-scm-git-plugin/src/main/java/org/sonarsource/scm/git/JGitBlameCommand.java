@@ -23,13 +23,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.RawTextComparator;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.RepositoryBuilder;
@@ -54,41 +51,14 @@ public class JGitBlameCommand extends BlameCommand {
   @Override
   public void blame(BlameInput input, BlameOutput output) {
     File basedir = input.fileSystem().baseDir();
-    Repository repo = buildRepository(basedir);
-    try {
+    try (Repository repo = buildRepository(basedir)) {
       Git git = Git.wrap(repo);
       File gitBaseDir = repo.getWorkTree();
-      ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-      List<Future<Void>> tasks = submitTasks(input, output, git, gitBaseDir, executorService);
-      executorService.shutdown();
-      waitForTaskToComplete(tasks);
-    } finally {
-      repo.close();
-    }
-  }
 
-  static void waitForTaskToComplete(List<Future<Void>> tasks) {
-    for (Future<Void> task : tasks) {
-      try {
-        task.get();
-      } catch (ExecutionException e) {
-        // Unwrap ExecutionException
-        throw e.getCause() instanceof RuntimeException ? (RuntimeException) e.getCause() : new IllegalStateException(e.getCause());
-      } catch (InterruptedException e) {
-        LOG.warn("Process was interrupted", e);
-        tasks.forEach(t -> t.cancel(true));
-        Thread.currentThread().interrupt();
-        return;
-      }
+      Stream<InputFile> stream = StreamSupport.stream(input.filesToBlame().spliterator(), false);
+      stream.parallel().forEach(inputFile ->
+              blame(output, git, gitBaseDir, inputFile));
     }
-  }
-
-  private List<Future<Void>> submitTasks(BlameInput input, BlameOutput output, Git git, File gitBaseDir, ExecutorService executorService) {
-    List<Future<Void>> tasks = new ArrayList<>();
-    for (InputFile inputFile : input.filesToBlame()) {
-      tasks.add(submitTask(output, git, gitBaseDir, inputFile, executorService));
-    }
-    return tasks;
   }
 
   private static Repository buildRepository(File basedir) {
@@ -108,17 +78,7 @@ public class JGitBlameCommand extends BlameCommand {
     }
   }
 
-  private Future<Void> submitTask(final BlameOutput output, final Git git, final File gitBaseDir, final InputFile inputFile, ExecutorService executorService) {
-    return executorService.submit(new Callable<Void>() {
-      @Override
-      public Void call() throws GitAPIException {
-        blame(output, git, gitBaseDir, inputFile);
-        return null;
-      }
-    });
-  }
-
-  private void blame(BlameOutput output, Git git, File gitBaseDir, InputFile inputFile) throws GitAPIException {
+  private void blame(BlameOutput output, Git git, File gitBaseDir, InputFile inputFile) {
     String filename = pathResolver.relativePath(gitBaseDir, inputFile.file());
     LOG.debug("Blame file {}", filename);
     org.eclipse.jgit.blame.BlameResult blameResult;

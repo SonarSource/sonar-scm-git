@@ -29,8 +29,6 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
@@ -291,22 +289,4 @@ public class JGitBlameCommandTest {
       throw new IllegalStateException(format("Fail to unzip %s to %s", zip, toDir), e);
     }
   }
-
-  @Test
-  public void coverInterruptedException() throws Exception {
-    Future<Void> f = new CompletableFuture<Void>() {
-      public Void get() throws InterruptedException, java.util.concurrent.ExecutionException {
-        throw new InterruptedException();
-      };
-    };
-    JGitBlameCommand.waitForTaskToComplete(Arrays.asList(f));
-
-    // Clear the interrupted flag to not break Junit thread
-    try {
-      Thread.interrupted();
-    } catch (Exception e) {
-
-    }
-  }
-
 }
