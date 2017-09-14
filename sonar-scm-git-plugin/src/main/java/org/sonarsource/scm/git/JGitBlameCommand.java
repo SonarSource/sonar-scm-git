@@ -23,9 +23,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.diff.RawTextComparator;
 import org.eclipse.jgit.lib.Repository;
@@ -51,14 +52,23 @@ public class JGitBlameCommand extends BlameCommand {
   @Override
   public void blame(BlameInput input, BlameOutput output) {
     File basedir = input.fileSystem().baseDir();
-    try (Repository repo = buildRepository(basedir)) {
-      Git git = Git.wrap(repo);
+    try (Repository repo = buildRepository(basedir); Git git = Git.wrap(repo)) {
       File gitBaseDir = repo.getWorkTree();
-
-      Stream<InputFile> stream = StreamSupport.stream(input.filesToBlame().spliterator(), false);
-      stream.parallel().forEach(inputFile ->
-              blame(output, git, gitBaseDir, inputFile));
+      Stream<InputFile> stream = StreamSupport.stream(input.filesToBlame().spliterator(), true);
+      ForkJoinPool forkJoinPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(),
+        new GitThreadFactory(), JGitBlameCommand::uncaughtException, false);
+      forkJoinPool.submit(() -> stream.forEach(inputFile -> blame(output, git, gitBaseDir, inputFile)));
+      try {
+        forkJoinPool.shutdown();
+        forkJoinPool.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+      } catch (InterruptedException e) {
+        LOG.info("Git blame interrupted");
+      }
     }
+  }
+
+  private static void uncaughtException(Thread t, Throwable e) {
+    throw new IllegalStateException("Failed to blame git files", e);
   }
 
   private static Repository buildRepository(File basedir) {
