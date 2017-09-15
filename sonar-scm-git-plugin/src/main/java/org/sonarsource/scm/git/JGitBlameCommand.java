@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.blame.BlameResult;
 import org.eclipse.jgit.diff.RawTextComparator;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.RepositoryBuilder;
@@ -55,8 +56,7 @@ public class JGitBlameCommand extends BlameCommand {
     try (Repository repo = buildRepository(basedir); Git git = Git.wrap(repo)) {
       File gitBaseDir = repo.getWorkTree();
       Stream<InputFile> stream = StreamSupport.stream(input.filesToBlame().spliterator(), true);
-      ForkJoinPool forkJoinPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(),
-        new GitThreadFactory(), JGitBlameCommand::uncaughtException, false);
+      ForkJoinPool forkJoinPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), new GitThreadFactory(), null, false);
       forkJoinPool.submit(() -> stream.forEach(inputFile -> blame(output, git, gitBaseDir, inputFile)));
       try {
         forkJoinPool.shutdown();
@@ -65,10 +65,6 @@ public class JGitBlameCommand extends BlameCommand {
         LOG.info("Git blame interrupted");
       }
     }
-  }
-
-  private static void uncaughtException(Thread t, Throwable e) {
-    throw new IllegalStateException("Failed to blame git files", e);
   }
 
   private static Repository buildRepository(File basedir) {
@@ -91,7 +87,7 @@ public class JGitBlameCommand extends BlameCommand {
   private void blame(BlameOutput output, Git git, File gitBaseDir, InputFile inputFile) {
     String filename = pathResolver.relativePath(gitBaseDir, inputFile.file());
     LOG.debug("Blame file {}", filename);
-    org.eclipse.jgit.blame.BlameResult blameResult;
+    BlameResult blameResult;
     try {
       blameResult = git.blame()
         // Equivalent to -w command line option
