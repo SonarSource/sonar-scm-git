@@ -100,8 +100,8 @@ public class GitTest {
 
     BuildResult result = runSonar("dummy-git");
     assertThat(result.getLogs()).contains("Missing blame information for the following files:");
-    assertThat(result.getLogs()).contains("dummy-git/src/main/java/org/dummy/Dummy.java");
-    assertThat(result.getLogs()).contains("dummy-git/src/main/java/org/dummy/Dummy2.java");
+    assertThat(result.getLogs()).contains("src/main/java/org/dummy/Dummy.java");
+    assertThat(result.getLogs()).contains("src/main/java/org/dummy/Dummy2.java");
 
     assertThat(getScmData("dummy-git:dummy:src/main/java/org/dummy/Dummy.java")).isEmpty();
     assertThat(getScmData("dummy-git:dummy:src/main/java/org/dummy/Dummy2.java")).isEmpty();
