@@ -71,19 +71,18 @@ public class GitScmProvider extends ScmBranchProvider {
   @Nullable
   @Override
   public Collection<Path> branchChangedFiles(String targetBranchName, Path rootBaseDir) {
-    try {
-      Repository repo = getVerifiedRepositoryBuilder(rootBaseDir).build();
-
+    try (Repository repo = getVerifiedRepositoryBuilder(rootBaseDir).build()) {
       Ref targetRef = repo.exactRef("refs/heads/" + targetBranchName);
       if (targetRef == null) {
         LOG.warn("Could not find ref: {}", targetBranchName);
         return null;
       }
 
-      Git git = new Git(repo);
-      return git.diff().setShowNameAndStatusOnly(true).setOldTree(prepareTreeParser(repo, targetRef)).call().stream()
-        .map(diffEntry -> repo.getWorkTree().toPath().resolve(diffEntry.getNewPath()))
-        .collect(Collectors.toSet());
+      try (Git git = new Git(repo)) {
+        return git.diff().setShowNameAndStatusOnly(true).setOldTree(prepareTreeParser(repo, targetRef)).call().stream()
+          .map(diffEntry -> repo.getWorkTree().toPath().resolve(diffEntry.getNewPath()))
+          .collect(Collectors.toSet());
+      }
     } catch (IOException | GitAPIException e) {
       LOG.warn(e.getMessage(), e);
     }
