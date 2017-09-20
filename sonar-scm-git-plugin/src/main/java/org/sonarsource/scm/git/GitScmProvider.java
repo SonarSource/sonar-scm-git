@@ -22,7 +22,6 @@ package org.sonarsource.scm.git;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -41,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonar.api.batch.scm.BlameCommand;
 import org.sonar.api.batch.scm.ScmBranchProvider;
+import org.sonar.api.utils.MessageException;
 
 public class GitScmProvider extends ScmBranchProvider {
 
@@ -71,14 +71,8 @@ public class GitScmProvider extends ScmBranchProvider {
   @Nullable
   @Override
   public Collection<Path> branchChangedFiles(String targetBranchName, Path rootBaseDir) {
-    RepositoryBuilder builder = new RepositoryBuilder().findGitDir(rootBaseDir.toFile());
-    if (builder.getGitDir() == null) {
-      LOG.warn("Not inside a Git work tree: {}", rootBaseDir);
-      return null;
-    }
-
     try {
-      Repository repo = builder.build();
+      Repository repo = getVerifiedRepositoryBuilder(rootBaseDir).build();
 
       Ref targetRef = repo.exactRef("refs/heads/" + targetBranchName);
       if (targetRef == null) {
@@ -112,5 +106,16 @@ public class GitScmProvider extends ScmBranchProvider {
 
       return treeParser;
     }
+  }
+
+  public static RepositoryBuilder getVerifiedRepositoryBuilder(Path basedir) {
+    RepositoryBuilder builder = new RepositoryBuilder()
+      .findGitDir(basedir.toFile())
+      .setMustExist(true);
+
+    if (builder.getGitDir() == null) {
+      throw MessageException.of("Not inside a Git work tree: " + basedir);
+    }
+    return builder;
   }
 }

@@ -34,6 +34,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.sonar.api.scan.filesystem.PathResolver;
+import org.sonar.api.utils.MessageException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -150,13 +151,17 @@ public class GitScmProviderTest {
   }
 
   @Test
-  public void branchChangedFiles_should_return_null_when_repo_nonexistent() throws IOException {
-    assertThat(new GitScmProvider(mockCommand()).branchChangedFiles("master", temp.newFolder().toPath())).isNull();
+  public void branchChangedFiles_should_throw_when_repo_nonexistent() throws IOException {
+    thrown.expect(MessageException.class);
+    thrown.expectMessage("Not inside a Git work tree: ");
+    new GitScmProvider(mockCommand()).branchChangedFiles("master", temp.newFolder().toPath());
   }
 
   @Test
-  public void branchChangedFiles_should_return_null_dir_nonexistent() throws IOException {
-    assertThat(new GitScmProvider(mockCommand()).branchChangedFiles("master", temp.getRoot().toPath().resolve("nonexistent"))).isNull();
+  public void branchChangedFiles_should_throw_when_dir_nonexistent() throws IOException {
+    thrown.expect(MessageException.class);
+    thrown.expectMessage("Not inside a Git work tree: ");
+    new GitScmProvider(mockCommand()).branchChangedFiles("master", temp.getRoot().toPath().resolve("nonexistent"));
   }
 
   private void createAndCommitNewFile(Path worktree, Git git, String filename) throws IOException, GitAPIException {

@@ -136,7 +136,7 @@ public class JGitBlameCommandTest {
     when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile));
 
     thrown.expect(MessageException.class);
-    thrown.expectMessage("dummy-git doesn't seem to be contained in a Git repository");
+    thrown.expectMessage("Not inside a Git work tree: ");
 
     jGitBlameCommand.blame(input, blameResult);
   }
