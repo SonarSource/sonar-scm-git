@@ -71,13 +71,13 @@ public class GitScmProvider extends ScmBranchProvider {
   @Nullable
   @Override
   public Collection<Path> branchChangedFiles(String targetBranchName, Path rootBaseDir) {
-    try {
-      RepositoryBuilder builder = new RepositoryBuilder().findGitDir(rootBaseDir.toFile());
-      if (builder.getGitDir() == null) {
-        LOG.warn("Not inside a Git work tree: {}", rootBaseDir);
-        return null;
-      }
+    RepositoryBuilder builder = new RepositoryBuilder().findGitDir(rootBaseDir.toFile());
+    if (builder.getGitDir() == null) {
+      LOG.warn("Not inside a Git work tree: {}", rootBaseDir);
+      return null;
+    }
 
+    try {
       Repository repo = builder.build();
 
       Ref targetRef = repo.exactRef("refs/heads/" + targetBranchName);
