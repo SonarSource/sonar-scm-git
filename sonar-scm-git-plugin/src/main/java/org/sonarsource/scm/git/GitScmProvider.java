@@ -20,11 +20,30 @@
 package org.sonarsource.scm.git;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.ObjectReader;
+import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.RepositoryBuilder;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.revwalk.filter.RevFilter;
+import org.eclipse.jgit.treewalk.AbstractTreeIterator;
+import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sonar.api.batch.scm.BlameCommand;
-import org.sonar.api.batch.scm.ScmProvider;
+import org.sonar.api.batch.scm.ScmBranchProvider;
 
-public class GitScmProvider extends ScmProvider {
+public class GitScmProvider extends ScmBranchProvider {
+
+  private static final Logger LOG = LoggerFactory.getLogger(GitScmProvider.class);
 
   private final JGitBlameCommand jgitBlameCommand;
 
@@ -46,5 +65,39 @@ public class GitScmProvider extends ScmProvider {
   @Override
   public BlameCommand blameCommand() {
     return this.jgitBlameCommand;
+  }
+
+  @Nullable
+  @Override
+  public Collection<Path> branchChangedFiles(String targetBranchName, Path rootBaseDir) {
+    try {
+      Repository repo = new RepositoryBuilder().findGitDir(rootBaseDir.toFile()).build();
+      Git git = new Git(repo);
+      String exactRef = "refs/heads/" + targetBranchName;
+      return git.diff().setShowNameAndStatusOnly(true).setOldTree(prepareTreeParser(repo, exactRef)).call().stream()
+        .map(diffEntry -> rootBaseDir.resolve(diffEntry.getNewPath()))
+        .collect(Collectors.toList());
+    } catch (IOException | GitAPIException e) {
+      LOG.warn(e.getMessage(), e);
+    }
+    return null;
+  }
+
+  private static AbstractTreeIterator prepareTreeParser(Repository repo, String targetExactRef) throws IOException {
+    try (RevWalk walk = new RevWalk(repo)) {
+      walk.markStart(walk.parseCommit(repo.exactRef(targetExactRef).getObjectId()));
+      walk.markStart(walk.parseCommit(repo.exactRef("HEAD").getObjectId()));
+      walk.setRevFilter(RevFilter.MERGE_BASE);
+      RevCommit base = walk.parseCommit(walk.next());
+
+      CanonicalTreeParser treeParser = new CanonicalTreeParser();
+      try (ObjectReader objectReader = repo.newObjectReader()) {
+        treeParser.reset(objectReader, base.getTree());
+      }
+
+      walk.dispose();
+
+      return treeParser;
+    }
   }
 }
