@@ -23,12 +23,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -46,6 +46,21 @@ public class GitScmProviderTest {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
+
+  private Path worktree;
+  private Repository repo;
+  private Git git;
+
+  @Before
+  public void before() throws IOException, GitAPIException {
+    worktree = temp.newFolder().toPath();
+    repo = FileRepositoryBuilder.create(worktree.resolve(".git").toFile());
+    repo.create();
+
+    git = new Git(repo);
+
+    createAndCommitNewFile(worktree, git, "file-in-first-commit");
+  }
 
   @Test
   public void sanityCheck() {
@@ -76,16 +91,7 @@ public class GitScmProviderTest {
   }
 
   @Test
-  public void test_branchChangedFiles_from_diverged() throws IOException, GitAPIException {
-    Path worktree = temp.newFolder().toPath();
-
-    Repository repo = FileRepositoryBuilder.create(worktree.resolve(".git").toFile());
-    repo.create();
-
-    Git git = new Git(repo);
-
-    createAndCommitNewFile(worktree, git, "file-0");
-
+  public void branchChangedFiles_from_diverged() throws IOException, GitAPIException {
     git.branchCreate().setName("b1").call();
     git.checkout().setName("b1").call();
     createAndCommitNewFile(worktree, git, "file-b1");
@@ -99,16 +105,7 @@ public class GitScmProviderTest {
   }
 
   @Test
-  public void test_branchChangedFiles_from_merged_and_diverged() throws IOException, GitAPIException {
-    Path worktree = temp.newFolder().toPath();
-
-    Repository repo = FileRepositoryBuilder.create(worktree.resolve(".git").toFile());
-    repo.create();
-
-    Git git = new Git(repo);
-
-    createAndCommitNewFile(worktree, git, "file-0");
-
+  public void branchChangedFiles_from_merged_and_diverged() throws IOException, GitAPIException {
     git.branchCreate().setName("b1").call();
     git.checkout().setName("b1").call();
     createAndCommitNewFile(worktree, git, "file-b1-1");
@@ -123,7 +120,7 @@ public class GitScmProviderTest {
 
     git.checkout().setName("b1").call();
     createAndCommitNewFile(worktree, git, "file-b1-2");
-    appendToAndCommitFile(worktree, git, "file-0");
+    appendToAndCommitFile(worktree, git, "file-in-first-commit");
 
     git.checkout().setName("b3").call();
     createAndCommitNewFile(worktree, git, "file-b3");
@@ -134,7 +131,18 @@ public class GitScmProviderTest {
         worktree.resolve("file-b3"));
   }
 
-  // TODO test correct absolute path when git dir is above project basedir
+  @Test
+  public void branchChangedFiles_when_git_work_tree_is_above_project_basedir() throws IOException, GitAPIException {
+    Path projectDir = worktree.resolve("project");
+    Files.createDirectory(projectDir);
+
+    git.branchCreate().setName("b1").call();
+    git.checkout().setName("b1").call();
+    createAndCommitNewFile(projectDir, git, "file-b1");
+
+    assertThat(new GitScmProvider(mockCommand()).branchChangedFiles("master", projectDir))
+      .containsOnly(projectDir.resolve("file-b1"));
+  }
 
   // TODO test correct null result for missing branch or missing dir or other interesting error
 

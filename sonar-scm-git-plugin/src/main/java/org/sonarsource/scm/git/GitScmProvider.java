@@ -75,7 +75,7 @@ public class GitScmProvider extends ScmBranchProvider {
       Git git = new Git(repo);
       String exactRef = "refs/heads/" + targetBranchName;
       return git.diff().setShowNameAndStatusOnly(true).setOldTree(prepareTreeParser(repo, exactRef)).call().stream()
-        .map(diffEntry -> rootBaseDir.resolve(diffEntry.getNewPath()))
+        .map(diffEntry -> repo.getWorkTree().toPath().resolve(diffEntry.getNewPath()))
         .collect(Collectors.toList());
     } catch (IOException | GitAPIException e) {
       LOG.warn(e.getMessage(), e);
