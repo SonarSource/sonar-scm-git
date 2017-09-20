@@ -144,7 +144,20 @@ public class GitScmProviderTest {
       .containsOnly(projectDir.resolve("file-b1"));
   }
 
-  // TODO test correct null result for missing branch or missing dir or other interesting error
+  @Test
+  public void branchChangedFiles_should_return_null_when_branch_nonexistent() {
+    assertThat(new GitScmProvider(mockCommand()).branchChangedFiles("nonexistent", worktree)).isNull();
+  }
+
+  @Test
+  public void branchChangedFiles_should_return_null_when_repo_nonexistent() throws IOException {
+    assertThat(new GitScmProvider(mockCommand()).branchChangedFiles("master", temp.newFolder().toPath())).isNull();
+  }
+
+  @Test
+  public void branchChangedFiles_should_return_null_dir_nonexistent() throws IOException {
+    assertThat(new GitScmProvider(mockCommand()).branchChangedFiles("master", temp.getRoot().toPath().resolve("nonexistent"))).isNull();
+  }
 
   private void createAndCommitNewFile(Path worktree, Git git, String filename) throws IOException, GitAPIException {
     File newFile = worktree.resolve(filename).toFile();

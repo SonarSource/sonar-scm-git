@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.ObjectReader;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.RepositoryBuilder;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -71,10 +72,22 @@ public class GitScmProvider extends ScmBranchProvider {
   @Override
   public Collection<Path> branchChangedFiles(String targetBranchName, Path rootBaseDir) {
     try {
-      Repository repo = new RepositoryBuilder().findGitDir(rootBaseDir.toFile()).build();
+      RepositoryBuilder builder = new RepositoryBuilder().findGitDir(rootBaseDir.toFile());
+      if (builder.getGitDir() == null) {
+        LOG.warn("Not inside a Git work tree: {}", rootBaseDir);
+        return null;
+      }
+
+      Repository repo = builder.build();
+
+      Ref targetRef = repo.exactRef("refs/heads/" + targetBranchName);
+      if (targetRef == null) {
+        LOG.warn("Could not find ref: {}", targetBranchName);
+        return null;
+      }
+
       Git git = new Git(repo);
-      String exactRef = "refs/heads/" + targetBranchName;
-      return git.diff().setShowNameAndStatusOnly(true).setOldTree(prepareTreeParser(repo, exactRef)).call().stream()
+      return git.diff().setShowNameAndStatusOnly(true).setOldTree(prepareTreeParser(repo, targetRef)).call().stream()
         .map(diffEntry -> repo.getWorkTree().toPath().resolve(diffEntry.getNewPath()))
         .collect(Collectors.toList());
     } catch (IOException | GitAPIException e) {
@@ -83,9 +96,9 @@ public class GitScmProvider extends ScmBranchProvider {
     return null;
   }
 
-  private static AbstractTreeIterator prepareTreeParser(Repository repo, String targetExactRef) throws IOException {
+  private static AbstractTreeIterator prepareTreeParser(Repository repo, Ref targetRef) throws IOException {
     try (RevWalk walk = new RevWalk(repo)) {
-      walk.markStart(walk.parseCommit(repo.exactRef(targetExactRef).getObjectId()));
+      walk.markStart(walk.parseCommit(targetRef.getObjectId()));
       walk.markStart(walk.parseCommit(repo.exactRef("HEAD").getObjectId()));
       walk.setRevFilter(RevFilter.MERGE_BASE);
       RevCommit base = walk.parseCommit(walk.next());
