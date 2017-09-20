@@ -76,6 +76,29 @@ public class GitScmProviderTest {
   }
 
   @Test
+  public void test_branchChangedFiles_from_diverged() throws IOException, GitAPIException {
+    Path worktree = temp.newFolder().toPath();
+
+    Repository repo = FileRepositoryBuilder.create(worktree.resolve(".git").toFile());
+    repo.create();
+
+    Git git = new Git(repo);
+
+    createAndCommitNewFile(worktree, git, "file-0");
+
+    git.branchCreate().setName("b1").call();
+    git.checkout().setName("b1").call();
+    createAndCommitNewFile(worktree, git, "file-b1");
+
+    git.branchCreate().setName("b2").setStartPoint("master").call();
+    git.checkout().setName("b2").call();
+    createAndCommitNewFile(worktree, git, "file-b2");
+
+    assertThat(new GitScmProvider(mockCommand()).branchChangedFiles("b1", worktree))
+      .containsOnly(worktree.resolve("file-b2"));
+  }
+
+  @Test
   public void test_branchChangedFiles_from_merged_and_diverged() throws IOException, GitAPIException {
     Path worktree = temp.newFolder().toPath();
 
