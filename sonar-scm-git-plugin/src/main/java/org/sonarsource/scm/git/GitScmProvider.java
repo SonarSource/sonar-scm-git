@@ -83,7 +83,7 @@ public class GitScmProvider extends ScmBranchProvider {
       Git git = new Git(repo);
       return git.diff().setShowNameAndStatusOnly(true).setOldTree(prepareTreeParser(repo, targetRef)).call().stream()
         .map(diffEntry -> repo.getWorkTree().toPath().resolve(diffEntry.getNewPath()))
-        .collect(Collectors.toList());
+        .collect(Collectors.toSet());
     } catch (IOException | GitAPIException e) {
       LOG.warn(e.getMessage(), e);
     }
