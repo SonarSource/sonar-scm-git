@@ -22,7 +22,7 @@ package org.sonarsource.scm.git;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collection;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.eclipse.jgit.api.Git;
@@ -70,7 +70,7 @@ public class GitScmProvider extends ScmBranchProvider {
 
   @Nullable
   @Override
-  public Collection<Path> branchChangedFiles(String targetBranchName, Path rootBaseDir) {
+  public Set<Path> branchChangedFiles(String targetBranchName, Path rootBaseDir) {
     try (Repository repo = getVerifiedRepositoryBuilder(rootBaseDir).build()) {
       Ref targetRef = repo.exactRef("refs/heads/" + targetBranchName);
       if (targetRef == null) {
