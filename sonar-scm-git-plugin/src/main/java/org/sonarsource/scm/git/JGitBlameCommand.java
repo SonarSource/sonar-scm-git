@@ -21,17 +21,21 @@ package org.sonarsource.scm.git;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import javax.annotation.Nonnull;
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.blame.BlameResult;
-import org.eclipse.jgit.diff.RawTextComparator;
+import org.eclipse.jgit.blame.BlameGenerator;
+import org.eclipse.jgit.diff.RawText;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.RepositoryBuilder;
+import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonar.api.batch.fs.InputFile;
@@ -87,36 +91,55 @@ public class JGitBlameCommand extends BlameCommand {
   private void blame(BlameOutput output, Git git, File gitBaseDir, InputFile inputFile) {
     String filename = pathResolver.relativePath(gitBaseDir, inputFile.file());
     LOG.debug("Blame file {}", filename);
-    BlameResult blameResult;
-    try {
-      blameResult = git.blame()
-        // Equivalent to -w command line option
-        .setTextComparator(RawTextComparator.WS_IGNORE_ALL)
-        .setFilePath(filename).call();
-    } catch (Exception e) {
-      throw new IllegalStateException("Unable to blame file " + inputFile.relativePath(), e);
-    }
-    List<BlameLine> lines = new ArrayList<>();
-    if (blameResult == null) {
-      LOG.debug("Unable to blame file {}. It is probably a symlink.", inputFile.relativePath());
-      return;
-    }
-    for (int i = 0; i < blameResult.getResultContents().size(); i++) {
-      if (blameResult.getSourceAuthor(i) == null || blameResult.getSourceCommit(i) == null) {
-        LOG.debug("Unable to blame file {}. No blame info at line {}. Is file committed? [Author: {} Source commit: {}]", inputFile.relativePath(), i + 1,
-          blameResult.getSourceAuthor(i), blameResult.getSourceCommit(i));
+
+    try (BlameGenerator gen = BlameGeneratorFactory.newBlameGenerator(filename, git.getRepository())) {
+      RawText contents = gen.getResultContents();
+      if (contents == null) {
+        gen.close();
+        LOG.debug("Unable to blame file {}. It is probably a symlink.", inputFile.relativePath());
         return;
       }
-      lines.add(new BlameLine()
-        .date(blameResult.getSourceCommitter(i).getWhen())
-        .revision(blameResult.getSourceCommit(i).getName())
-        .author(blameResult.getSourceAuthor(i).getEmailAddress()));
+      List<BlameLine> lines = getBlameLines(inputFile, gen);
+      output.blameResult(inputFile, lines);
+    } catch (IOException e) {
+      throw new IllegalStateException("Unable to blame file " + inputFile.relativePath(), e);
     }
-    if (lines.size() == inputFile.lines() - 1) {
-      // SONARPLUGINS-3097 Git do not report blame on last empty line
-      lines.add(lines.get(lines.size() - 1));
+  }
+
+  @Nonnull
+  private List<BlameLine> getBlameLines(InputFile inputFile, BlameGenerator gen) throws IOException {
+    int size = gen.getResultContents().size();
+
+    // SONARPLUGINS-3097 Git do not report blame on last empty line
+    boolean duplicateLastLine = size > 0 && (size == inputFile.lines() - 1);
+    if (duplicateLastLine) {
+      size++;
     }
-    output.blameResult(inputFile, lines);
+    BlameLine[] lines = new BlameLine[size];
+
+    while (gen.next()) {
+      for (int i = gen.getResultStart(); i < gen.getResultEnd(); i++) {
+        RevCommit sourceCommit = gen.getSourceCommit();
+        PersonIdent sourceAuthor = gen.getSourceAuthor();
+        if (sourceAuthor == null || sourceCommit == null) {
+          LOG.debug("Unable to blame file {}. No blame info at line {}. Is file committed? [Author: {} Source commit: {}]", inputFile.relativePath(), i + 1,
+                  gen.getSourceAuthor(), sourceCommit);
+          return Collections.emptyList();
+        }
+        // BlameGenerator#next() does not process files from start to end, so lines may come in any order
+        // and we need to store BlameLine by its index, not just add it to list
+        lines[i] = new BlameLine()
+                .date(gen.getSourceCommitter().getWhen())
+                .revision(sourceCommit.getName())
+                .author(gen.getSourceAuthor().getEmailAddress());
+      }
+    }
+
+    if (duplicateLastLine) {
+      lines[size - 1] = lines[size - 2];
+    }
+
+    return Arrays.asList(lines);
   }
 
 }
