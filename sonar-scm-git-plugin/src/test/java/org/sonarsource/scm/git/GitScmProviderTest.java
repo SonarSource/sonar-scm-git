@@ -60,7 +60,7 @@ public class GitScmProviderTest {
 
     git = new Git(repo);
 
-    createAndCommitNewFile(worktree, git, "file-in-first-commit");
+    createAndCommitNewFile(worktree, "file-in-first-commit");
   }
 
   @Test
@@ -95,11 +95,11 @@ public class GitScmProviderTest {
   public void branchChangedFiles_from_diverged() throws IOException, GitAPIException {
     git.branchCreate().setName("b1").call();
     git.checkout().setName("b1").call();
-    createAndCommitNewFile(worktree, git, "file-b1");
+    createAndCommitNewFile(worktree, "file-b1");
 
     git.branchCreate().setName("b2").setStartPoint("master").call();
     git.checkout().setName("b2").call();
-    createAndCommitNewFile(worktree, git, "file-b2");
+    createAndCommitNewFile(worktree, "file-b2");
 
     assertThat(new GitScmProvider(mockCommand()).branchChangedFiles("b1", worktree))
       .containsOnly(worktree.resolve("file-b2"));
@@ -109,22 +109,22 @@ public class GitScmProviderTest {
   public void branchChangedFiles_from_merged_and_diverged() throws IOException, GitAPIException {
     git.branchCreate().setName("b1").call();
     git.checkout().setName("b1").call();
-    createAndCommitNewFile(worktree, git, "file-b1-1");
+    createAndCommitNewFile(worktree, "file-b1-1");
 
     git.branchCreate().setName("b2").setStartPoint("master").call();
     git.checkout().setName("b2").call();
-    createAndCommitNewFile(worktree, git, "file-b2");
+    createAndCommitNewFile(worktree, "file-b2");
 
     git.branchCreate().setName("b3").call();
     git.checkout().setName("b3").call();
     git.merge().include(repo.findRef("b1")).call();
 
     git.checkout().setName("b1").call();
-    createAndCommitNewFile(worktree, git, "file-b1-2");
-    appendToAndCommitFile(worktree, git, "file-in-first-commit");
+    createAndCommitNewFile(worktree, "file-b1-2");
+    appendToAndCommitFile(worktree, "file-in-first-commit");
 
     git.checkout().setName("b3").call();
-    createAndCommitNewFile(worktree, git, "file-b3");
+    createAndCommitNewFile(worktree, "file-b3");
 
     assertThat(new GitScmProvider(mockCommand()).branchChangedFiles("b1", worktree))
       .containsExactlyInAnyOrder(
@@ -139,7 +139,7 @@ public class GitScmProviderTest {
 
     git.branchCreate().setName("b1").call();
     git.checkout().setName("b1").call();
-    createAndCommitNewFile(projectDir, git, "file-b1");
+    createAndCommitNewFile(projectDir, "file-b1");
 
     assertThat(new GitScmProvider(mockCommand()).branchChangedFiles("master", projectDir))
       .containsOnly(projectDir.resolve("file-b1"));
@@ -164,18 +164,18 @@ public class GitScmProviderTest {
     new GitScmProvider(mockCommand()).branchChangedFiles("master", temp.getRoot().toPath().resolve("nonexistent"));
   }
 
-  private void createAndCommitNewFile(Path worktree, Git git, String filename) throws IOException, GitAPIException {
+  private void createAndCommitNewFile(Path worktree, String filename) throws IOException, GitAPIException {
     File newFile = worktree.resolve(filename).toFile();
     assertThat(newFile.createNewFile()).isTrue();
-    commit(git, filename);
+    commit(filename);
   }
 
-  private void appendToAndCommitFile(Path worktree, Git git, String filename) throws IOException, GitAPIException {
+  private void appendToAndCommitFile(Path worktree, String filename) throws IOException, GitAPIException {
     Files.write(worktree.resolve(filename), "foo".getBytes(), StandardOpenOption.APPEND);
-    commit(git, filename);
+    commit(filename);
   }
 
-  private void commit(Git git, String filename) throws GitAPIException {
+  private void commit(String filename) throws GitAPIException {
     git.add().addFilepattern(filename).call();
     git.commit().setAuthor("joe", "joe@example.com").setMessage(filename).call();
   }
