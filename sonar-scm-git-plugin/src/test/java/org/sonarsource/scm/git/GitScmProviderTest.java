@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.junit.Before;
@@ -84,7 +85,7 @@ public class GitScmProviderTest {
     File projectDir = temp.newFolder();
     javaUnzip(new File("test-repos/dummy-git.zip"), projectDir);
     File baseDir = new File(projectDir, "dummy-git");
-    assertThat(new GitScmProvider(mockCommand()).supports(baseDir)).isTrue();
+    assertThat(newScmProvider().supports(baseDir)).isTrue();
   }
 
   private static JGitBlameCommand mockCommand() {
@@ -93,16 +94,22 @@ public class GitScmProviderTest {
 
   @Test
   public void branchChangedFiles_from_diverged() throws IOException, GitAPIException {
-    git.branchCreate().setName("b1").call();
+    createAndCommitNewFile(worktree, "file-m1");
+    createAndCommitNewFile(worktree, "file-m2");
+    createAndCommitNewFile(worktree, "file-m3");
+    ObjectId forkPoint = git.getRepository().exactRef("HEAD").getObjectId();
+
+    appendToAndCommitFile(worktree, "file-m3");
+    createAndCommitNewFile(worktree, "file-m4");
+
+    git.branchCreate().setName("b1").setStartPoint(forkPoint.getName()).call();
     git.checkout().setName("b1").call();
     createAndCommitNewFile(worktree, "file-b1");
+    appendToAndCommitFile(worktree, "file-m1");
+    deleteAndCommitFile("file-m2");
 
-    git.branchCreate().setName("b2").setStartPoint("master").call();
-    git.checkout().setName("b2").call();
-    createAndCommitNewFile(worktree, "file-b2");
-
-    assertThat(new GitScmProvider(mockCommand()).branchChangedFiles("b1", worktree))
-      .containsOnly(worktree.resolve("file-b2"));
+    assertThat(newScmProvider().branchChangedFiles("master", worktree))
+      .containsOnly(worktree.resolve("file-b1"), worktree.resolve("file-m1"));
   }
 
   @Test
@@ -126,7 +133,7 @@ public class GitScmProviderTest {
     git.checkout().setName("b3").call();
     createAndCommitNewFile(worktree, "file-b3");
 
-    assertThat(new GitScmProvider(mockCommand()).branchChangedFiles("b1", worktree))
+    assertThat(newScmProvider().branchChangedFiles("b1", worktree))
       .containsExactlyInAnyOrder(
         worktree.resolve("file-b2"),
         worktree.resolve("file-b3"));
@@ -141,27 +148,27 @@ public class GitScmProviderTest {
     git.checkout().setName("b1").call();
     createAndCommitNewFile(projectDir, "file-b1");
 
-    assertThat(new GitScmProvider(mockCommand()).branchChangedFiles("master", projectDir))
+    assertThat(newScmProvider().branchChangedFiles("master", projectDir))
       .containsOnly(projectDir.resolve("file-b1"));
   }
 
   @Test
   public void branchChangedFiles_should_return_null_when_branch_nonexistent() {
-    assertThat(new GitScmProvider(mockCommand()).branchChangedFiles("nonexistent", worktree)).isNull();
+    assertThat(newScmProvider().branchChangedFiles("nonexistent", worktree)).isNull();
   }
 
   @Test
   public void branchChangedFiles_should_throw_when_repo_nonexistent() throws IOException {
     thrown.expect(MessageException.class);
     thrown.expectMessage("Not inside a Git work tree: ");
-    new GitScmProvider(mockCommand()).branchChangedFiles("master", temp.newFolder().toPath());
+    newScmProvider().branchChangedFiles("master", temp.newFolder().toPath());
   }
 
   @Test
   public void branchChangedFiles_should_throw_when_dir_nonexistent() throws IOException {
     thrown.expect(MessageException.class);
     thrown.expectMessage("Not inside a Git work tree: ");
-    new GitScmProvider(mockCommand()).branchChangedFiles("master", temp.getRoot().toPath().resolve("nonexistent"));
+    newScmProvider().branchChangedFiles("master", temp.getRoot().toPath().resolve("nonexistent"));
   }
 
   private void createAndCommitNewFile(Path worktree, String filename) throws IOException, GitAPIException {
@@ -175,8 +182,17 @@ public class GitScmProviderTest {
     commit(filename);
   }
 
+  private void deleteAndCommitFile(String filename) throws IOException, GitAPIException {
+    git.rm().addFilepattern(filename).call();
+    commit(filename);
+  }
+
   private void commit(String filename) throws GitAPIException {
     git.add().addFilepattern(filename).call();
     git.commit().setAuthor("joe", "joe@example.com").setMessage(filename).call();
+  }
+
+  private GitScmProvider newScmProvider() {
+    return new GitScmProvider(mockCommand());
   }
 }

@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -80,6 +81,7 @@ public class GitScmProvider extends ScmBranchProvider {
 
       try (Git git = new Git(repo)) {
         return git.diff().setShowNameAndStatusOnly(true).setOldTree(prepareTreeParser(repo, targetRef)).call().stream()
+          .filter(diffEntry -> diffEntry.getChangeType() == DiffEntry.ChangeType.ADD || diffEntry.getChangeType() == DiffEntry.ChangeType.MODIFY)
           .map(diffEntry -> repo.getWorkTree().toPath().resolve(diffEntry.getNewPath()))
           .collect(Collectors.toSet());
       }
