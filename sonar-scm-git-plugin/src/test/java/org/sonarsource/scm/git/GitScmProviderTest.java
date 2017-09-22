@@ -61,7 +61,7 @@ public class GitScmProviderTest {
 
     git = new Git(repo);
 
-    createAndCommitNewFile(worktree, "file-in-first-commit");
+    createAndCommitNewFile(worktree, "file-in-first-commit.xoo");
   }
 
   @Test
@@ -94,49 +94,52 @@ public class GitScmProviderTest {
 
   @Test
   public void branchChangedFiles_from_diverged() throws IOException, GitAPIException {
-    createAndCommitNewFile(worktree, "file-m1");
-    createAndCommitNewFile(worktree, "file-m2");
-    createAndCommitNewFile(worktree, "file-m3");
+    createAndCommitNewFile(worktree, "file-m1.xoo");
+    createAndCommitNewFile(worktree, "file-m2.xoo");
+    createAndCommitNewFile(worktree, "file-m3.xoo");
     ObjectId forkPoint = git.getRepository().exactRef("HEAD").getObjectId();
 
-    appendToAndCommitFile(worktree, "file-m3");
-    createAndCommitNewFile(worktree, "file-m4");
+    appendToAndCommitFile(worktree, "file-m3.xoo");
+    createAndCommitNewFile(worktree, "file-m4.xoo");
 
     git.branchCreate().setName("b1").setStartPoint(forkPoint.getName()).call();
     git.checkout().setName("b1").call();
-    createAndCommitNewFile(worktree, "file-b1");
-    appendToAndCommitFile(worktree, "file-m1");
-    deleteAndCommitFile("file-m2");
+    createAndCommitNewFile(worktree, "file-b1.xoo");
+    appendToAndCommitFile(worktree, "file-m1.xoo");
+    deleteAndCommitFile("file-m2.xoo");
 
     assertThat(newScmProvider().branchChangedFiles("master", worktree))
-      .containsOnly(worktree.resolve("file-b1"), worktree.resolve("file-m1"));
+      .containsExactlyInAnyOrder(
+        worktree.resolve("file-b1.xoo"),
+        worktree.resolve("file-m1.xoo"));
   }
 
   @Test
   public void branchChangedFiles_from_merged_and_diverged() throws IOException, GitAPIException {
-    git.branchCreate().setName("b1").call();
+    createAndCommitNewFile(worktree, "file-m1.xoo");
+    createAndCommitNewFile(worktree, "file-m2.xoo");
+    ObjectId forkPoint = git.getRepository().exactRef("HEAD").getObjectId();
+
+    createAndCommitNewFile(worktree, "file-m3.xoo");
+    ObjectId mergePoint = git.getRepository().exactRef("HEAD").getObjectId();
+
+    appendToAndCommitFile(worktree, "file-m3.xoo");
+    createAndCommitNewFile(worktree, "file-m4.xoo");
+
+    git.branchCreate().setName("b1").setStartPoint(forkPoint.getName()).call();
     git.checkout().setName("b1").call();
-    createAndCommitNewFile(worktree, "file-b1-1");
+    createAndCommitNewFile(worktree, "file-b1.xoo");
+    appendToAndCommitFile(worktree, "file-m1.xoo");
+    deleteAndCommitFile("file-m2.xoo");
 
-    git.branchCreate().setName("b2").setStartPoint("master").call();
-    git.checkout().setName("b2").call();
-    createAndCommitNewFile(worktree, "file-b2");
+    git.merge().include(mergePoint).call();
+    createAndCommitNewFile(worktree, "file-b2.xoo");
 
-    git.branchCreate().setName("b3").call();
-    git.checkout().setName("b3").call();
-    git.merge().include(repo.findRef("b1")).call();
-
-    git.checkout().setName("b1").call();
-    createAndCommitNewFile(worktree, "file-b1-2");
-    appendToAndCommitFile(worktree, "file-in-first-commit");
-
-    git.checkout().setName("b3").call();
-    createAndCommitNewFile(worktree, "file-b3");
-
-    assertThat(newScmProvider().branchChangedFiles("b1", worktree))
+    assertThat(newScmProvider().branchChangedFiles("master", worktree))
       .containsExactlyInAnyOrder(
-        worktree.resolve("file-b2"),
-        worktree.resolve("file-b3"));
+        worktree.resolve("file-m1.xoo"),
+        worktree.resolve("file-b1.xoo"),
+        worktree.resolve("file-b2.xoo"));
   }
 
   @Test
