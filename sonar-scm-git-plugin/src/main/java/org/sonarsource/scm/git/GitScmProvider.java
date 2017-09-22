@@ -40,10 +40,10 @@ import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonar.api.batch.scm.BlameCommand;
-import org.sonar.api.batch.scm.ScmBranchProvider;
+import org.sonar.api.batch.scm.ScmProvider;
 import org.sonar.api.utils.MessageException;
 
-public class GitScmProvider extends ScmBranchProvider {
+public class GitScmProvider extends ScmProvider {
 
   private static final Logger LOG = LoggerFactory.getLogger(GitScmProvider.class);
 
