@@ -70,4 +70,20 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.sonarsource.sonar-packaging-maven-plugin</groupId>
+        <artifactId>sonar-packaging-maven-plugin</artifactId>
+        <version>1.17</version>
+        <configuration>
+          <pluginName>${project.name}</pluginName>
+          <skipDependenciesPackaging>false</skipDependenciesPackaging>
+          <pluginClass>org.sonarsource.scm.git.GitPlugin</pluginClass>
+          <sonarQubeMinVersion>5.6</sonarQubeMinVersion>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
