@@ -177,6 +177,17 @@ public class GitScmProviderTest {
     newScmProvider().branchChangedFiles("master", temp.getRoot().toPath().resolve("nonexistent"));
   }
 
+  @Test
+  public void branchChangedFiles_should_return_null_on_io_errors_of_repo_builder() throws IOException {
+    GitScmProvider provider = new GitScmProvider(mockCommand()) {
+      @Override
+      Repository buildRepo(Path basedir) throws IOException {
+        throw new IOException();
+      }
+    };
+    assertThat(provider.branchChangedFiles("branch", temp.newFolder().toPath())).isNull();
+  }
+
   private String randomizedContent(String prefix) {
     StringBuilder sb = new StringBuilder(prefix);
     for (int i = 0; i < 4; i++) {

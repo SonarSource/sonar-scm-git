@@ -72,7 +72,7 @@ public class GitScmProvider extends ScmProvider {
   @Nullable
   @Override
   public Set<Path> branchChangedFiles(String targetBranchName, Path rootBaseDir) {
-    try (Repository repo = getVerifiedRepositoryBuilder(rootBaseDir).build()) {
+    try (Repository repo = buildRepo(rootBaseDir)) {
       Ref targetRef = repo.exactRef("refs/heads/" + targetBranchName);
       if (targetRef == null) {
         LOG.warn("Could not find ref: {}", targetBranchName);
@@ -109,7 +109,11 @@ public class GitScmProvider extends ScmProvider {
     }
   }
 
-  public static RepositoryBuilder getVerifiedRepositoryBuilder(Path basedir) {
+  Repository buildRepo(Path basedir) throws IOException {
+    return getVerifiedRepositoryBuilder(basedir).build();
+  }
+
+  static RepositoryBuilder getVerifiedRepositoryBuilder(Path basedir) {
     RepositoryBuilder builder = new RepositoryBuilder()
       .findGitDir(basedir.toFile())
       .setMustExist(true);
