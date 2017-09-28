@@ -79,7 +79,7 @@ public class GitScmProvider extends ScmProvider {
         return null;
       }
 
-      try (Git git = new Git(repo)) {
+      try (Git git = newGit(repo)) {
         return git.diff().setShowNameAndStatusOnly(true).setOldTree(prepareTreeParser(repo, targetRef)).call().stream()
           .filter(diffEntry -> diffEntry.getChangeType() == DiffEntry.ChangeType.ADD || diffEntry.getChangeType() == DiffEntry.ChangeType.MODIFY)
           .map(diffEntry -> repo.getWorkTree().toPath().resolve(diffEntry.getNewPath()))
@@ -107,6 +107,10 @@ public class GitScmProvider extends ScmProvider {
 
       return treeParser;
     }
+  }
+
+  Git newGit(Repository repo) {
+    return new Git(repo);
   }
 
   RevWalk newRevWalk(Repository repo) {

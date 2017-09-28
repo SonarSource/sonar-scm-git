@@ -25,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Random;
+import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.ObjectId;
@@ -41,6 +42,7 @@ import org.sonar.api.utils.MessageException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.sonarsource.scm.git.JGitBlameCommandTest.javaUnzip;
@@ -211,6 +213,25 @@ public class GitScmProviderTest {
       @Override
       RevWalk newRevWalk(Repository repo) {
         return walk;
+      }
+    };
+    assertThat(provider.branchChangedFiles("branch", worktree)).isNull();
+  }
+
+  @Test
+  public void branchChangedFiles_should_return_null_on_git_api_errors() throws GitAPIException {
+    DiffCommand diffCommand = mock(DiffCommand.class);
+    when(diffCommand.setShowNameAndStatusOnly(anyBoolean())).thenReturn(diffCommand);
+    when(diffCommand.setOldTree(any())).thenReturn(diffCommand);
+    when(diffCommand.call()).thenThrow(mock(GitAPIException.class));
+
+    Git git = mock(Git.class);
+    when(git.diff()).thenReturn(diffCommand);
+
+    GitScmProvider provider = new GitScmProvider(mockCommand()) {
+      @Override
+      Git newGit(Repository repo) {
+        return git;
       }
     };
     assertThat(provider.branchChangedFiles("branch", worktree)).isNull();
