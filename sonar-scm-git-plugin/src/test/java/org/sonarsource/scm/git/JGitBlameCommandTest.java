@@ -40,6 +40,7 @@ import org.junit.rules.TemporaryFolder;
 import org.sonar.api.batch.fs.InputFile;
 import org.sonar.api.batch.fs.internal.DefaultFileSystem;
 import org.sonar.api.batch.fs.internal.DefaultInputFile;
+import org.sonar.api.batch.fs.internal.TestInputFileBuilder;
 import org.sonar.api.batch.scm.BlameCommand.BlameInput;
 import org.sonar.api.batch.scm.BlameCommand.BlameOutput;
 import org.sonar.api.batch.scm.BlameLine;
@@ -82,7 +83,9 @@ public class JGitBlameCommandTest {
     File baseDir = new File(projectDir, "dummy-git");
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
     when(input.fileSystem()).thenReturn(fs);
-    DefaultInputFile inputFile = new DefaultInputFile("foo", DUMMY_JAVA);
+    DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA)
+      .setModuleBaseDir(baseDir.toPath())
+      .build();
     fs.add(inputFile);
 
     BlameOutput blameResult = mock(BlameOutput.class);
@@ -126,14 +129,14 @@ public class JGitBlameCommandTest {
 
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
     when(input.fileSystem()).thenReturn(fs);
-    DefaultInputFile inputFile = new DefaultInputFile("foo", DUMMY_JAVA);
+    DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA).build();
     fs.add(inputFile);
 
     BlameOutput blameResult = mock(BlameOutput.class);
     when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile));
 
     thrown.expect(MessageException.class);
-    thrown.expectMessage("dummy-git doesn't seem to be contained in a Git repository");
+    thrown.expectMessage("Not inside a Git work tree: ");
 
     jGitBlameCommand.blame(input, blameResult);
   }
@@ -148,7 +151,9 @@ public class JGitBlameCommandTest {
     File baseDir = new File(projectDir, "dummy-git-nested/dummy-project");
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
     when(input.fileSystem()).thenReturn(fs);
-    DefaultInputFile inputFile = new DefaultInputFile("foo", DUMMY_JAVA);
+    DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA)
+      .setModuleBaseDir(baseDir.toPath())
+      .build();
     fs.add(inputFile);
 
     BlameOutput blameResult = mock(BlameOutput.class);
@@ -199,7 +204,7 @@ public class JGitBlameCommandTest {
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
     when(input.fileSystem()).thenReturn(fs);
     String relativePath = DUMMY_JAVA;
-    DefaultInputFile inputFile = new DefaultInputFile("foo", relativePath);
+    DefaultInputFile inputFile = new TestInputFileBuilder("foo", relativePath).build();
     fs.add(inputFile);
 
     // Emulate a modification
@@ -223,9 +228,9 @@ public class JGitBlameCommandTest {
     when(input.fileSystem()).thenReturn(fs);
     String relativePath = DUMMY_JAVA;
     String relativePath2 = "src/main/java/org/dummy/Dummy2.java";
-    DefaultInputFile inputFile = new DefaultInputFile("foo", relativePath);
+    DefaultInputFile inputFile = new TestInputFileBuilder("foo", relativePath).build();
     fs.add(inputFile);
-    DefaultInputFile inputFile2 = new DefaultInputFile("foo", relativePath2);
+    DefaultInputFile inputFile2 = new TestInputFileBuilder("foo", relativePath2).build();
     fs.add(inputFile2);
 
     // Emulate a new file
@@ -250,9 +255,13 @@ public class JGitBlameCommandTest {
     when(input.fileSystem()).thenReturn(fs);
     String relativePath = DUMMY_JAVA;
     String relativePath2 = "src/main/java/org/dummy/Dummy2.java";
-    DefaultInputFile inputFile = new DefaultInputFile("foo", relativePath);
+    DefaultInputFile inputFile = new TestInputFileBuilder("foo", relativePath)
+      .setModuleBaseDir(baseDir.toPath())
+      .build();
     fs.add(inputFile);
-    DefaultInputFile inputFile2 = new DefaultInputFile("foo", relativePath2);
+    DefaultInputFile inputFile2 = new TestInputFileBuilder("foo", relativePath2)
+      .setModuleBaseDir(baseDir.toPath())
+      .build();
     fs.add(inputFile2);
 
     // Create symlink

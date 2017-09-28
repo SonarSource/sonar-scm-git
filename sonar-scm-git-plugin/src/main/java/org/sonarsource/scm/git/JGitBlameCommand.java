@@ -31,14 +31,12 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.blame.BlameResult;
 import org.eclipse.jgit.diff.RawTextComparator;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.lib.RepositoryBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sonar.api.batch.fs.InputFile;
 import org.sonar.api.batch.scm.BlameCommand;
 import org.sonar.api.batch.scm.BlameLine;
 import org.sonar.api.scan.filesystem.PathResolver;
-import org.sonar.api.utils.MessageException;
 
 public class JGitBlameCommand extends BlameCommand {
 
@@ -68,14 +66,8 @@ public class JGitBlameCommand extends BlameCommand {
   }
 
   private static Repository buildRepository(File basedir) {
-    RepositoryBuilder repoBuilder = new RepositoryBuilder()
-      .findGitDir(basedir)
-      .setMustExist(true);
-    if (repoBuilder.getGitDir() == null) {
-      throw MessageException.of(basedir + " doesn't seem to be contained in a Git repository");
-    }
     try {
-      Repository repo = repoBuilder.build();
+      Repository repo = GitScmProvider.getVerifiedRepositoryBuilder(basedir.toPath()).build();
       // SONARSCGIT-2 Force initialization of shallow commits to avoid later concurrent modification issue
       repo.getObjectDatabase().newReader().getShallowCommits();
       return repo;

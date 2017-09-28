@@ -14,7 +14,7 @@
   
   <properties>
     <!-- Minimal supported version of SonarQube. It is defined in travis.sh for integration testing too. -->
-    <sonar.apiVersion>5.6</sonar.apiVersion>
+    <sonar.apiVersion>6.6.0.31177</sonar.apiVersion>
     <sonar.pluginName>Git</sonar.pluginName>
     <sonar.pluginClass>org.sonarsource.scm.git.GitPlugin</sonar.pluginClass>
   </properties>
@@ -70,4 +70,20 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.sonarsource.sonar-packaging-maven-plugin</groupId>
+        <artifactId>sonar-packaging-maven-plugin</artifactId>
+        <version>1.17</version>
+        <configuration>
+          <pluginName>${project.name}</pluginName>
+          <skipDependenciesPackaging>false</skipDependenciesPackaging>
+          <pluginClass>org.sonarsource.scm.git.GitPlugin</pluginClass>
+          <sonarQubeMinVersion>5.6</sonarQubeMinVersion>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>
