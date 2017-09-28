@@ -91,8 +91,8 @@ public class GitScmProvider extends ScmProvider {
     return null;
   }
 
-  private static AbstractTreeIterator prepareTreeParser(Repository repo, Ref targetRef) throws IOException {
-    try (RevWalk walk = new RevWalk(repo)) {
+  private AbstractTreeIterator prepareTreeParser(Repository repo, Ref targetRef) throws IOException {
+    try (RevWalk walk = newRevWalk(repo)) {
       walk.markStart(walk.parseCommit(targetRef.getObjectId()));
       walk.markStart(walk.parseCommit(repo.exactRef("HEAD").getObjectId()));
       walk.setRevFilter(RevFilter.MERGE_BASE);
@@ -107,6 +107,10 @@ public class GitScmProvider extends ScmProvider {
 
       return treeParser;
     }
+  }
+
+  RevWalk newRevWalk(Repository repo) {
+    return new RevWalk(repo);
   }
 
   Repository buildRepo(Path basedir) throws IOException {

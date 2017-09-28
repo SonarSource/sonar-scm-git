@@ -29,6 +29,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.junit.Before;
 import org.junit.Rule;
@@ -39,7 +40,9 @@ import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.MessageException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.sonarsource.scm.git.JGitBlameCommandTest.javaUnzip;
 
 public class GitScmProviderTest {
@@ -185,7 +188,32 @@ public class GitScmProviderTest {
         throw new IOException();
       }
     };
-    assertThat(provider.branchChangedFiles("branch", temp.newFolder().toPath())).isNull();
+    assertThat(provider.branchChangedFiles("branch", worktree)).isNull();
+  }
+
+  @Test
+  public void branchChangedFiles_should_return_null_on_io_errors_of_repo_exactref() throws IOException {
+    GitScmProvider provider = new GitScmProvider(mockCommand()) {
+      @Override
+      Repository buildRepo(Path basedir) throws IOException {
+        return mock(Repository.class);
+      }
+    };
+    assertThat(provider.branchChangedFiles("branch", worktree)).isNull();
+  }
+
+  @Test
+  public void branchChangedFiles_should_return_null_on_io_errors_of_RevWalk() throws IOException {
+    RevWalk walk = mock(RevWalk.class);
+    when(walk.parseCommit(any())).thenThrow(new IOException());
+
+    GitScmProvider provider = new GitScmProvider(mockCommand()) {
+      @Override
+      RevWalk newRevWalk(Repository repo) {
+        return walk;
+      }
+    };
+    assertThat(provider.branchChangedFiles("branch", worktree)).isNull();
   }
 
   private String randomizedContent(String prefix) {
