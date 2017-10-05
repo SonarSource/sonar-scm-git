@@ -270,6 +270,30 @@ public class JGitBlameCommandTest {
     jGitBlameCommand.blame(input, blameResult);
   }
 
+  @Test
+  public void should_fail_fast_when_clone_is_shallow() throws IOException {
+    File projectDir = temp.newFolder();
+    javaUnzip(new File("test-repos/shallow-git.zip"), projectDir);
+
+    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
+
+    File baseDir = new File(projectDir, "shallow-git");
+
+    DefaultFileSystem fs = new DefaultFileSystem(baseDir);
+    when(input.fileSystem()).thenReturn(fs);
+    DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA).build();
+    fs.add(inputFile);
+
+    BlameOutput blameResult = mock(BlameOutput.class);
+    when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile));
+
+    thrown.expect(MessageException.class);
+    thrown.expectMessage("Shallow clone detected");
+
+    jGitBlameCommand.blame(input, blameResult);
+  }
+
+
   public static void javaUnzip(File zip, File toDir) {
     try {
       try (ZipFile zipFile = new ZipFile(zip)) {
