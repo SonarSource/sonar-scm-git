@@ -21,6 +21,7 @@ package org.sonarsource.scm.git;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
@@ -54,7 +55,7 @@ public class JGitBlameCommand extends BlameCommand {
     File basedir = input.fileSystem().baseDir();
     try (Repository repo = buildRepository(basedir); Git git = Git.wrap(repo)) {
       File gitBaseDir = repo.getWorkTree();
-      if (gitBaseDir.toPath().resolve(".git/shallow").toFile().isFile()) {
+      if (Files.isRegularFile(gitBaseDir.toPath().resolve(".git/shallow"))) {
         throw MessageException.of("Shallow clone detected, blame information may be incorrect. You can convert to non-shallow with: git fetch --unshallow");
       }
       Stream<InputFile> stream = StreamSupport.stream(input.filesToBlame().spliterator(), true);
