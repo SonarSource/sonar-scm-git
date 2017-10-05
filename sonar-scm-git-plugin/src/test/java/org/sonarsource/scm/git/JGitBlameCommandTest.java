@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.LinkedList;
@@ -275,22 +276,19 @@ public class JGitBlameCommandTest {
     File projectDir = temp.newFolder();
     javaUnzip(new File("test-repos/shallow-git.zip"), projectDir);
 
-    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
-
     File baseDir = new File(projectDir, "shallow-git");
 
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
     when(input.fileSystem()).thenReturn(fs);
-    DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA).build();
-    fs.add(inputFile);
 
-    BlameOutput blameResult = mock(BlameOutput.class);
-    when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile));
+    DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA).build();
+    when(input.filesToBlame()).thenReturn(Collections.singleton(inputFile));
 
     thrown.expect(MessageException.class);
     thrown.expectMessage("Shallow clone detected");
 
-    jGitBlameCommand.blame(input, blameResult);
+    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
+    jGitBlameCommand.blame(input, mock(BlameOutput.class));
   }
 
 
