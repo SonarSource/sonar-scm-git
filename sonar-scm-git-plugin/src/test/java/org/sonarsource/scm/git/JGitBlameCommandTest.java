@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.LinkedList;
@@ -269,6 +270,27 @@ public class JGitBlameCommandTest {
     when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile, inputFile2));
     jGitBlameCommand.blame(input, blameResult);
   }
+
+  @Test
+  public void should_fail_fast_when_clone_is_shallow() throws IOException {
+    File projectDir = temp.newFolder();
+    javaUnzip(new File("test-repos/shallow-git.zip"), projectDir);
+
+    File baseDir = new File(projectDir, "shallow-git");
+
+    DefaultFileSystem fs = new DefaultFileSystem(baseDir);
+    when(input.fileSystem()).thenReturn(fs);
+
+    DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA).build();
+    when(input.filesToBlame()).thenReturn(Collections.singleton(inputFile));
+
+    thrown.expect(MessageException.class);
+    thrown.expectMessage("Shallow clone detected");
+
+    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
+    jGitBlameCommand.blame(input, mock(BlameOutput.class));
+  }
+
 
   public static void javaUnzip(File zip, File toDir) {
     try {
