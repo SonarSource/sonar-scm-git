@@ -1,7 +1,7 @@
 /*
  * SonarQube :: Plugins :: SCM :: Git
- * Copyright (C) 2014-2017 SonarSource SA
- * mailto:info AT sonarsource DOT com
+ * Copyright (C) 2014-2016 SonarSource SA
+ * mailto:contact AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -20,9 +20,7 @@
 package org.sonarsource.scm.git;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Date;
@@ -44,7 +42,6 @@ import org.sonar.api.batch.fs.internal.TestInputFileBuilder;
 import org.sonar.api.batch.scm.BlameCommand.BlameInput;
 import org.sonar.api.batch.scm.BlameCommand.BlameOutput;
 import org.sonar.api.batch.scm.BlameLine;
-import org.sonar.api.internal.apachecommons.io.IOUtils;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.DateUtils;
 import org.sonar.api.utils.MessageException;
@@ -208,7 +205,7 @@ public class JGitBlameCommandTest {
     fs.add(inputFile);
 
     // Emulate a modification
-    FileUtils.write(new File(baseDir, relativePath), "modification and \n some new line", true);
+    Files.write(baseDir.toPath().resolve(relativePath), "modification and \n some new line".getBytes());
 
     BlameOutput blameResult = mock(BlameOutput.class);
 
@@ -288,9 +285,7 @@ public class JGitBlameCommandTest {
               FileUtils.forceMkdir(parent);
             }
 
-            try (OutputStream fos = new FileOutputStream(to)) {
-              IOUtils.copy(zipFile.getInputStream(entry), fos);
-            }
+            Files.copy(zipFile.getInputStream(entry), to.toPath());
           }
         }
       }
