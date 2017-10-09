@@ -13,4 +13,6 @@ configureTravis
 # @TravisCI please provide the feature natively, like at AppVeyor or CircleCI ;-)
 cancel_branch_build_with_pr
 
+export DEPLOY_PULL_REQUEST=true
+
 regular_mvn_build_deploy_analyze
