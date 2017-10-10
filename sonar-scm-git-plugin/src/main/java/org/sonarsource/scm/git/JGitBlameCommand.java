@@ -55,8 +55,9 @@ public class JGitBlameCommand extends BlameCommand {
     try (Repository repo = buildRepository(basedir); Git git = Git.wrap(repo)) {
       File gitBaseDir = repo.getWorkTree();
       if (Files.isRegularFile(gitBaseDir.toPath().resolve(".git/shallow"))) {
-        LOG.warn("Shallow clone detected, blame information may be incorrect. "
-          + "You can either convert to non-shallow with 'git fetch --unshallow', or disable the scm.");
+        LOG.warn("Shallow clone detected, no blame information will be provided. "
+          + "You can convert to non-shallow with 'git fetch --unshallow'.");
+        return;
       }
       Stream<InputFile> stream = StreamSupport.stream(input.filesToBlame().spliterator(), true);
       ForkJoinPool forkJoinPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), new GitThreadFactory(), null, false);

@@ -54,6 +54,7 @@ import static java.lang.String.format;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 public class JGitBlameCommandTest {
@@ -290,9 +291,12 @@ public class JGitBlameCommandTest {
     when(input.filesToBlame()).thenReturn(Collections.singleton(inputFile));
 
     JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
-    jGitBlameCommand.blame(input, mock(BlameOutput.class));
+    BlameOutput output = mock(BlameOutput.class);
+    jGitBlameCommand.blame(input, output);
+
     assertThat(logTester.logs()).first()
-      .matches(s -> s.contains("Shallow clone detected, blame information may be incorrect. "));
+      .matches(s -> s.contains("Shallow clone detected, no blame information will be provided."));
+    verifyZeroInteractions(output);
   }
 
   public static void javaUnzip(File zip, File toDir) {
