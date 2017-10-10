@@ -47,6 +47,8 @@ import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.DateUtils;
 import org.sonar.api.utils.MessageException;
 import org.sonar.api.utils.System2;
+import org.sonar.api.utils.log.LogTester;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import static java.lang.String.format;
 import static org.junit.Assume.assumeTrue;
@@ -63,6 +65,9 @@ public class JGitBlameCommandTest {
 
   @Rule
   public TemporaryFolder temp = new TemporaryFolder();
+
+  @Rule
+  public LogTester logTester = new LogTester();
 
   private BlameInput input;
 
@@ -284,13 +289,11 @@ public class JGitBlameCommandTest {
     DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA).build();
     when(input.filesToBlame()).thenReturn(Collections.singleton(inputFile));
 
-    thrown.expect(MessageException.class);
-    thrown.expectMessage("Shallow clone detected");
-
     JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
     jGitBlameCommand.blame(input, mock(BlameOutput.class));
+    assertThat(logTester.logs()).first()
+      .matches(s -> s.contains("Shallow clone detected, blame information may be incorrect. "));
   }
-
 
   public static void javaUnzip(File zip, File toDir) {
     try {
