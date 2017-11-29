@@ -19,14 +19,11 @@
  */
 package org.sonarsource.scm.git;
 
-import java.util.Arrays;
-import java.util.List;
-import org.sonar.api.SonarPlugin;
+import org.sonar.api.Plugin;
 
-public final class GitPlugin extends SonarPlugin {
-
+public final class GitPlugin implements Plugin {
   @Override
-  public List getExtensions() {
-    return Arrays.asList(GitScmProvider.class, JGitBlameCommand.class);
+  public void define(Context context) {
+    context.addExtensions(GitScmProvider.class, JGitBlameCommand.class);
   }
 }
