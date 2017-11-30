@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Random;
 import org.eclipse.jgit.api.DiffCommand;
@@ -58,13 +59,12 @@ public class GitScmProviderTest {
   private static final Random random = new Random();
 
   private Path worktree;
-  private Repository repo;
   private Git git;
 
   @Before
   public void before() throws IOException, GitAPIException {
     worktree = temp.newFolder().toPath();
-    repo = FileRepositoryBuilder.create(worktree.resolve(".git").toFile());
+    Repository repo = FileRepositoryBuilder.create(worktree.resolve(".git").toFile());
     repo.create();
 
     git = new Git(repo);
@@ -74,7 +74,7 @@ public class GitScmProviderTest {
 
   @Test
   public void sanityCheck() {
-    assertThat(new GitScmProvider(mock(JGitBlameCommand.class)).key()).isEqualTo("git");
+    assertThat(newGitScmProvider().key()).isEqualTo("git");
   }
 
   @Test
@@ -88,7 +88,7 @@ public class GitScmProviderTest {
   @Test
   public void testAutodetection() throws IOException {
     File baseDirEmpty = temp.newFolder();
-    assertThat(new GitScmProvider(mock(JGitBlameCommand.class)).supports(baseDirEmpty)).isFalse();
+    assertThat(newGitScmProvider().supports(baseDirEmpty)).isFalse();
 
     File projectDir = temp.newFolder();
     javaUnzip(new File("test-repos/dummy-git.zip"), projectDir);
@@ -235,6 +235,32 @@ public class GitScmProviderTest {
       }
     };
     assertThat(provider.branchChangedFiles("branch", worktree)).isNull();
+  }
+
+  @Test
+  public void relativePathFromScmRoot_should_return_dot_project_root() throws IOException {
+    assertThat(newGitScmProvider().relativePathFromScmRoot(worktree)).isEqualTo(Paths.get(""));
+  }
+
+  private GitScmProvider newGitScmProvider() {
+    return new GitScmProvider(mock(JGitBlameCommand.class));
+  }
+
+  @Test
+  public void relativePathFromScmRoot_should_return_filename_for_file_in_project_root() throws IOException {
+    Path filename = Paths.get("somefile.xoo");
+    Path path = worktree.resolve(filename);
+    Files.createFile(path);
+    assertThat(newGitScmProvider().relativePathFromScmRoot(path)).isEqualTo(filename);
+  }
+
+  @Test
+  public void relativePathFromScmRoot_should_return_relative_path_for_file_in_project_subdir() throws IOException {
+    Path relpath = Paths.get("sub/dir/to/somefile.xoo");
+    Path path = worktree.resolve(relpath);
+    Files.createDirectories(path.getParent());
+    Files.createFile(path);
+    assertThat(newGitScmProvider().relativePathFromScmRoot(path)).isEqualTo(relpath);
   }
 
   private String randomizedContent(String prefix) {

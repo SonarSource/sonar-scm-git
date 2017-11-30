@@ -91,6 +91,12 @@ public class GitScmProvider extends ScmProvider {
     return null;
   }
 
+  @Override
+  public Path relativePathFromScmRoot(Path path) {
+    RepositoryBuilder builder = getVerifiedRepositoryBuilder(path);
+    return builder.getGitDir().toPath().getParent().relativize(path);
+  }
+
   private AbstractTreeIterator prepareTreeParser(Repository repo, Ref targetRef) throws IOException {
     try (RevWalk walk = newRevWalk(repo)) {
       walk.markStart(walk.parseCommit(targetRef.getObjectId()));
