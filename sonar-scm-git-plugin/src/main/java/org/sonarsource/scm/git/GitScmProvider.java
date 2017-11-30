@@ -97,6 +97,16 @@ public class GitScmProvider extends ScmProvider {
     return builder.getGitDir().toPath().getParent().relativize(path);
   }
 
+  @Override
+  public String revisionId(Path path) {
+    RepositoryBuilder builder = getVerifiedRepositoryBuilder(path);
+    try {
+      return builder.build().exactRef("HEAD").getObjectId().getName();
+    } catch (IOException e) {
+      throw MessageException.of("I/O error while getting revision ID for path: " + path, e);
+    }
+  }
+
   private AbstractTreeIterator prepareTreeParser(Repository repo, Ref targetRef) throws IOException {
     try (RevWalk walk = newRevWalk(repo)) {
       walk.markStart(walk.parseCommit(targetRef.getObjectId()));

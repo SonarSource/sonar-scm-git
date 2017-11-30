@@ -263,6 +263,24 @@ public class GitScmProviderTest {
     assertThat(newGitScmProvider().relativePathFromScmRoot(path)).isEqualTo(relpath);
   }
 
+  @Test
+  public void revisionId_should_return_different_sha1_after_commit() throws IOException, GitAPIException {
+    Path projectDir = worktree.resolve("project");
+    Files.createDirectory(projectDir);
+
+    GitScmProvider provider = newGitScmProvider();
+
+    String sha1before = provider.revisionId(projectDir);
+    assertThat(sha1before).hasSize(40);
+
+    createAndCommitFile(projectDir, "file1");
+    String sha1after = provider.revisionId(projectDir);
+    assertThat(sha1after).hasSize(40);
+
+    assertThat(sha1after).isNotEqualTo(sha1before);
+    assertThat(provider.revisionId(projectDir)).isEqualTo(sha1after);
+  }
+
   private String randomizedContent(String prefix) {
     StringBuilder sb = new StringBuilder(prefix);
     for (int i = 0; i < 4; i++) {
