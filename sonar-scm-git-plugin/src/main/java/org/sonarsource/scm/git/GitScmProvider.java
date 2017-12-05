@@ -103,7 +103,7 @@ public class GitScmProvider extends ScmProvider {
     try {
       return builder.build().exactRef("HEAD").getObjectId().getName();
     } catch (IOException e) {
-      throw MessageException.of("I/O error while getting revision ID for path: " + path, e);
+      throw new IllegalStateException("I/O error while getting revision ID for path: " + path, e);
     }
   }
 
