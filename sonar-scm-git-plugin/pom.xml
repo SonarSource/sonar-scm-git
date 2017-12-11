@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.sonarsource.scm.git</groupId>
@@ -11,9 +12,10 @@
   <name>SonarQube :: Plugins :: SCM :: Git</name>
   <description>Git SCM Provider for SonarQube</description>
   <url>http://redirect.sonarsource.com/plugins/scmgit.html</url>
-  
+
   <properties>
-    <!-- Minimal supported version of SonarQube. It is defined in travis.sh for integration testing too. -->
+    <!-- Minimal supported version of SonarQube. It is defined in travis.sh 
+      for integration testing too. -->
     <sonar.apiVersion>7.0.0.34397</sonar.apiVersion>
     <sonar.pluginName>Git</sonar.pluginName>
     <sonar.pluginClass>org.sonarsource.scm.git.GitPlugin</sonar.pluginClass>
@@ -79,10 +81,39 @@
         <version>1.17</version>
         <configuration>
           <pluginName>${project.name}</pluginName>
-          <skipDependenciesPackaging>false</skipDependenciesPackaging>
+          <skipDependenciesPackaging>true</skipDependenciesPackaging>
           <pluginClass>org.sonarsource.scm.git.GitPlugin</pluginClass>
           <sonarQubeMinVersion>5.6</sonarQubeMinVersion>
         </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <shadedArtifactAttached>false</shadedArtifactAttached>
+              <minimizeJar>true</minimizeJar>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/LICENSE*</exclude>
+                    <exclude>META-INF/NOTICE*</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>LICENSE*</exclude>
+                    <exclude>NOTICE*</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
