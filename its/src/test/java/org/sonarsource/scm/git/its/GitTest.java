@@ -103,8 +103,13 @@ public class GitTest {
     assertThat(result.getLogs()).contains("src/main/java/org/dummy/Dummy.java");
     assertThat(result.getLogs()).contains("src/main/java/org/dummy/Dummy2.java");
 
-    assertThat(getScmData("dummy-git:dummy:src/main/java/org/dummy/Dummy.java")).isEmpty();
-    assertThat(getScmData("dummy-git:dummy:src/main/java/org/dummy/Dummy2.java")).isEmpty();
+    if (orchestrator.getServer().version().isGreaterThanOrEquals("7.1")) {
+      assertThat(getScmData("dummy-git:dummy:src/main/java/org/dummy/Dummy.java")).hasSize(31);
+      assertThat(getScmData("dummy-git:dummy:src/main/java/org/dummy/Dummy2.java")).hasSize(2);
+    } else {
+      assertThat(getScmData("dummy-git:dummy:src/main/java/org/dummy/Dummy.java")).isEmpty();
+      assertThat(getScmData("dummy-git:dummy:src/main/java/org/dummy/Dummy2.java")).isEmpty();
+    }
   }
 
   public static void unzip(String zipName) {
