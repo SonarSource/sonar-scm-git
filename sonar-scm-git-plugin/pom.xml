@@ -12,7 +12,11 @@
   <name>SonarQube :: Plugins :: SCM :: Git</name>
   <description>Git SCM Provider for SonarQube</description>
   <url>http://redirect.sonarsource.com/plugins/scmgit.html</url>
-
+  
+  <scm>
+    <url>https://github.com/SonarSource/sonar-scm-git</url>
+  </scm>
+ 
   <properties>
     <!-- Minimal supported version of SonarQube. It is defined in travis.sh 
       for integration testing too. -->
