@@ -84,7 +84,7 @@
         <artifactId>sonar-packaging-maven-plugin</artifactId>
         <version>1.17</version>
         <configuration>
-          <pluginName>${project.name}</pluginName>
+          <pluginName>Git</pluginName>
           <skipDependenciesPackaging>true</skipDependenciesPackaging>
           <pluginClass>org.sonarsource.scm.git.GitPlugin</pluginClass>
           <sonarQubeMinVersion>5.6</sonarQubeMinVersion>
