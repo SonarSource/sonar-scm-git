@@ -75,7 +75,10 @@ public class GitScmProvider extends ScmProvider {
     try (Repository repo = buildRepo(rootBaseDir)) {
       Ref targetRef = repo.exactRef("refs/heads/" + targetBranchName);
       if (targetRef == null) {
-        LOG.warn("Could not find ref: {}", targetBranchName);
+        targetRef = repo.exactRef("refs/remotes/origin/" + targetBranchName);
+      }
+      if (targetRef == null) {
+        LOG.warn("Could not find ref: {} in refs/heads or refs/remotes/origin", targetBranchName);
         return null;
       }
 
