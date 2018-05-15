@@ -164,6 +164,22 @@ public class GitScmProviderTest {
   }
 
   @Test
+  public void branchChangedFiles_falls_back_to_origin_when_local_branch_does_not_exist() throws IOException, GitAPIException {
+    git.branchCreate().setName("b1").call();
+    git.checkout().setName("b1").call();
+    createAndCommitFile(worktree, "file-b1");
+
+    Path worktree2 = temp.newFolder().toPath();
+    Git.cloneRepository()
+      .setURI(worktree.toString())
+      .setDirectory(worktree2.toFile())
+      .call();
+
+    assertThat(newScmProvider().branchChangedFiles("master", worktree2))
+      .containsOnly(worktree2.resolve("file-b1"));
+  }
+
+  @Test
   public void branchChangedFiles_should_return_null_when_branch_nonexistent() {
     assertThat(newScmProvider().branchChangedFiles("nonexistent", worktree)).isNull();
   }
@@ -176,14 +192,14 @@ public class GitScmProviderTest {
   }
 
   @Test
-  public void branchChangedFiles_should_throw_when_dir_nonexistent() throws IOException {
+  public void branchChangedFiles_should_throw_when_dir_nonexistent() {
     thrown.expect(MessageException.class);
     thrown.expectMessage("Not inside a Git work tree: ");
     newScmProvider().branchChangedFiles("master", temp.getRoot().toPath().resolve("nonexistent"));
   }
 
   @Test
-  public void branchChangedFiles_should_return_null_on_io_errors_of_repo_builder() throws IOException {
+  public void branchChangedFiles_should_return_null_on_io_errors_of_repo_builder() {
     GitScmProvider provider = new GitScmProvider(mockCommand()) {
       @Override
       Repository buildRepo(Path basedir) throws IOException {
@@ -194,10 +210,10 @@ public class GitScmProviderTest {
   }
 
   @Test
-  public void branchChangedFiles_should_return_null_on_io_errors_of_repo_exactref() throws IOException {
+  public void branchChangedFiles_should_return_null_on_io_errors_of_repo_exactref() {
     GitScmProvider provider = new GitScmProvider(mockCommand()) {
       @Override
-      Repository buildRepo(Path basedir) throws IOException {
+      Repository buildRepo(Path basedir) {
         return mock(Repository.class);
       }
     };
@@ -238,7 +254,7 @@ public class GitScmProviderTest {
   }
 
   @Test
-  public void relativePathFromScmRoot_should_return_dot_project_root() throws IOException {
+  public void relativePathFromScmRoot_should_return_dot_project_root() {
     assertThat(newGitScmProvider().relativePathFromScmRoot(worktree)).isEqualTo(Paths.get(""));
   }
 
@@ -303,7 +319,7 @@ public class GitScmProviderTest {
     commit(filename);
   }
 
-  private void deleteAndCommitFile(String filename) throws IOException, GitAPIException {
+  private void deleteAndCommitFile(String filename) throws GitAPIException {
     git.rm().addFilepattern(filename).call();
     commit(filename);
   }
