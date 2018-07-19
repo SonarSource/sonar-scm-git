@@ -83,7 +83,10 @@ public class GitScmProvider extends ScmProvider {
       }
 
       try (Git git = newGit(repo)) {
-        return git.diff().setShowNameAndStatusOnly(true).setOldTree(prepareTreeParser(repo, targetRef)).call().stream()
+        return git.diff().setShowNameAndStatusOnly(true)
+          .setOldTree(prepareTreeParser(repo, targetRef))
+          .setNewTree(prepareNewTree(repo))
+          .call().stream()
           .filter(diffEntry -> diffEntry.getChangeType() == DiffEntry.ChangeType.ADD || diffEntry.getChangeType() == DiffEntry.ChangeType.MODIFY)
           .map(diffEntry -> repo.getWorkTree().toPath().resolve(diffEntry.getNewPath()))
           .collect(Collectors.toSet());
@@ -104,19 +107,30 @@ public class GitScmProvider extends ScmProvider {
   public String revisionId(Path path) {
     RepositoryBuilder builder = getVerifiedRepositoryBuilder(path);
     try {
-      return builder.build().exactRef("HEAD").getObjectId().getName();
+      return getHead(builder.build()).getObjectId().getName();
     } catch (IOException e) {
       throw new IllegalStateException("I/O error while getting revision ID for path: " + path, e);
     }
+  }
+  
+  private static AbstractTreeIterator prepareNewTree(Repository repo) throws IOException {
+    CanonicalTreeParser treeParser = new CanonicalTreeParser();
+    try (ObjectReader objectReader = repo.newObjectReader()) {
+      treeParser.reset(objectReader, repo.parseCommit(getHead(repo).getObjectId()).getTree());
+    }
+    return treeParser;
+  }
+  
+  private static Ref getHead(Repository repo) throws IOException {
+    return repo.exactRef("HEAD");
   }
 
   private AbstractTreeIterator prepareTreeParser(Repository repo, Ref targetRef) throws IOException {
     try (RevWalk walk = newRevWalk(repo)) {
       walk.markStart(walk.parseCommit(targetRef.getObjectId()));
-      walk.markStart(walk.parseCommit(repo.exactRef("HEAD").getObjectId()));
+      walk.markStart(walk.parseCommit(getHead(repo).getObjectId()));
       walk.setRevFilter(RevFilter.MERGE_BASE);
       RevCommit base = walk.parseCommit(walk.next());
-
       CanonicalTreeParser treeParser = new CanonicalTreeParser();
       try (ObjectReader objectReader = repo.newObjectReader()) {
         treeParser.reset(objectReader, base.getTree());

@@ -152,13 +152,13 @@ public class GitScmProviderTest {
 
   @Test
   public void branchChangedFiles_when_git_work_tree_is_above_project_basedir() throws IOException, GitAPIException {
-    Path projectDir = worktree.resolve("project");
-    Files.createDirectory(projectDir);
-
     git.branchCreate().setName("b1").call();
     git.checkout().setName("b1").call();
+    
+    Path projectDir = worktree.resolve("project");
+    Files.createDirectory(projectDir);
     createAndCommitFile(projectDir, "file-b1");
-
+    commit("project");
     assertThat(newScmProvider().branchChangedFiles("master", projectDir))
       .containsOnly(projectDir.resolve("file-b1"));
   }
