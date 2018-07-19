@@ -131,6 +131,7 @@ public class GitScmProvider extends ScmProvider {
       walk.markStart(walk.parseCommit(getHead(repo).getObjectId()));
       walk.setRevFilter(RevFilter.MERGE_BASE);
       RevCommit base = walk.parseCommit(walk.next());
+      LOG.debug("Merge base sha1: {}", base.getName());
       CanonicalTreeParser treeParser = new CanonicalTreeParser();
       try (ObjectReader objectReader = repo.newObjectReader()) {
         treeParser.reset(objectReader, base.getTree());
