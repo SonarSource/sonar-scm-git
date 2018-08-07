@@ -69,7 +69,7 @@ public class GitScmProviderTest {
 
     git = new Git(repo);
 
-    createAndCommitFile(worktree, "file-in-first-commit.xoo");
+    createAndCommitFile("file-in-first-commit.xoo");
   }
 
   @Test
@@ -102,18 +102,18 @@ public class GitScmProviderTest {
 
   @Test
   public void branchChangedFiles_from_diverged() throws IOException, GitAPIException {
-    createAndCommitFile(worktree, "file-m1.xoo");
-    createAndCommitFile(worktree, "file-m2.xoo");
-    createAndCommitFile(worktree, "file-m3.xoo");
+    createAndCommitFile("file-m1.xoo");
+    createAndCommitFile("file-m2.xoo");
+    createAndCommitFile("file-m3.xoo");
     ObjectId forkPoint = git.getRepository().exactRef("HEAD").getObjectId();
 
-    appendToAndCommitFile(worktree, "file-m3.xoo");
-    createAndCommitFile(worktree, "file-m4.xoo");
+    appendToAndCommitFile("file-m3.xoo");
+    createAndCommitFile("file-m4.xoo");
 
     git.branchCreate().setName("b1").setStartPoint(forkPoint.getName()).call();
     git.checkout().setName("b1").call();
-    createAndCommitFile(worktree, "file-b1.xoo");
-    appendToAndCommitFile(worktree, "file-m1.xoo");
+    createAndCommitFile("file-b1.xoo");
+    appendToAndCommitFile("file-m1.xoo");
     deleteAndCommitFile("file-m2.xoo");
 
     assertThat(newScmProvider().branchChangedFiles("master", worktree))
@@ -124,24 +124,24 @@ public class GitScmProviderTest {
 
   @Test
   public void branchChangedFiles_from_merged_and_diverged() throws IOException, GitAPIException {
-    createAndCommitFile(worktree, "file-m1.xoo");
-    createAndCommitFile(worktree, "file-m2.xoo");
+    createAndCommitFile("file-m1.xoo");
+    createAndCommitFile("file-m2.xoo");
     ObjectId forkPoint = git.getRepository().exactRef("HEAD").getObjectId();
 
-    createAndCommitFile(worktree, "file-m3.xoo");
+    createAndCommitFile("file-m3.xoo");
     ObjectId mergePoint = git.getRepository().exactRef("HEAD").getObjectId();
 
-    appendToAndCommitFile(worktree, "file-m3.xoo");
-    createAndCommitFile(worktree, "file-m4.xoo");
+    appendToAndCommitFile("file-m3.xoo");
+    createAndCommitFile("file-m4.xoo");
 
     git.branchCreate().setName("b1").setStartPoint(forkPoint.getName()).call();
     git.checkout().setName("b1").call();
-    createAndCommitFile(worktree, "file-b1.xoo");
-    appendToAndCommitFile(worktree, "file-m1.xoo");
+    createAndCommitFile("file-b1.xoo");
+    appendToAndCommitFile("file-m1.xoo");
     deleteAndCommitFile("file-m2.xoo");
 
     git.merge().include(mergePoint).call();
-    createAndCommitFile(worktree, "file-b2.xoo");
+    createAndCommitFile("file-b2.xoo");
 
     assertThat(newScmProvider().branchChangedFiles("master", worktree))
       .containsExactlyInAnyOrder(
@@ -157,7 +157,7 @@ public class GitScmProviderTest {
     
     Path projectDir = worktree.resolve("project");
     Files.createDirectory(projectDir);
-    createAndCommitFile(worktree, "project/file-b1");
+    createAndCommitFile("project/file-b1");
     assertThat(newScmProvider().branchChangedFiles("master", projectDir))
       .containsOnly(projectDir.resolve("file-b1"));
   }
@@ -166,7 +166,7 @@ public class GitScmProviderTest {
   public void branchChangedFiles_falls_back_to_origin_when_local_branch_does_not_exist() throws IOException, GitAPIException {
     git.branchCreate().setName("b1").call();
     git.checkout().setName("b1").call();
-    createAndCommitFile(worktree, "file-b1");
+    createAndCommitFile("file-b1");
 
     Path worktree2 = temp.newFolder().toPath();
     Git.cloneRepository()
@@ -288,7 +288,7 @@ public class GitScmProviderTest {
     String sha1before = provider.revisionId(projectDir);
     assertThat(sha1before).hasSize(40);
 
-    createAndCommitFile(worktree, "project/file1");
+    createAndCommitFile("project/file1");
     String sha1after = provider.revisionId(projectDir);
     assertThat(sha1after).hasSize(40);
 
@@ -307,13 +307,13 @@ public class GitScmProviderTest {
     return sb.append("\n").toString();
   }
 
-  private void createAndCommitFile(Path worktree, String relativePath) throws IOException, GitAPIException {
+  private void createAndCommitFile(String relativePath) throws IOException, GitAPIException {
     Path newFile = worktree.resolve(relativePath);
     Files.write(newFile, randomizedContent(relativePath).getBytes(), StandardOpenOption.CREATE_NEW);
     commit(relativePath);
   }
 
-  private void appendToAndCommitFile(Path worktree, String relativePath) throws IOException, GitAPIException {
+  private void appendToAndCommitFile(String relativePath) throws IOException, GitAPIException {
     Files.write(worktree.resolve(relativePath), randomizedContent(relativePath).getBytes(), StandardOpenOption.APPEND);
     commit(relativePath);
   }
