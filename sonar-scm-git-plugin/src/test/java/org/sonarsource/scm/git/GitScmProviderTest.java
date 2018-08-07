@@ -157,8 +157,7 @@ public class GitScmProviderTest {
     
     Path projectDir = worktree.resolve("project");
     Files.createDirectory(projectDir);
-    createAndCommitFile(projectDir, "file-b1");
-    commit("project");
+    createAndCommitFile(worktree, "project/file-b1");
     assertThat(newScmProvider().branchChangedFiles("master", projectDir))
       .containsOnly(projectDir.resolve("file-b1"));
   }
@@ -289,7 +288,7 @@ public class GitScmProviderTest {
     String sha1before = provider.revisionId(projectDir);
     assertThat(sha1before).hasSize(40);
 
-    createAndCommitFile(projectDir, "file1");
+    createAndCommitFile(worktree, "project/file1");
     String sha1after = provider.revisionId(projectDir);
     assertThat(sha1after).hasSize(40);
 
@@ -308,25 +307,25 @@ public class GitScmProviderTest {
     return sb.append("\n").toString();
   }
 
-  private void createAndCommitFile(Path worktree, String filename) throws IOException, GitAPIException {
-    Path newFile = worktree.resolve(filename);
-    Files.write(newFile, randomizedContent(filename).getBytes(), StandardOpenOption.CREATE_NEW);
-    commit(filename);
+  private void createAndCommitFile(Path worktree, String relativePath) throws IOException, GitAPIException {
+    Path newFile = worktree.resolve(relativePath);
+    Files.write(newFile, randomizedContent(relativePath).getBytes(), StandardOpenOption.CREATE_NEW);
+    commit(relativePath);
   }
 
-  private void appendToAndCommitFile(Path worktree, String filename) throws IOException, GitAPIException {
-    Files.write(worktree.resolve(filename), randomizedContent(filename).getBytes(), StandardOpenOption.APPEND);
-    commit(filename);
+  private void appendToAndCommitFile(Path worktree, String relativePath) throws IOException, GitAPIException {
+    Files.write(worktree.resolve(relativePath), randomizedContent(relativePath).getBytes(), StandardOpenOption.APPEND);
+    commit(relativePath);
   }
 
-  private void deleteAndCommitFile(String filename) throws GitAPIException {
-    git.rm().addFilepattern(filename).call();
-    commit(filename);
+  private void deleteAndCommitFile(String relativePath) throws GitAPIException {
+    git.rm().addFilepattern(relativePath).call();
+    commit(relativePath);
   }
 
-  private void commit(String filename) throws GitAPIException {
-    git.add().addFilepattern(filename).call();
-    git.commit().setAuthor("joe", "joe@example.com").setMessage(filename).call();
+  private void commit(String relativePath) throws GitAPIException {
+    git.add().addFilepattern(relativePath).call();
+    git.commit().setAuthor("joe", "joe@example.com").setMessage(relativePath).call();
   }
 
   private GitScmProvider newScmProvider() {
