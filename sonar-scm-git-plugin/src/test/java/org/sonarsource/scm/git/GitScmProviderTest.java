@@ -25,7 +25,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Collections;
 import java.util.Random;
+import java.util.Set;
 import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -38,6 +40,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
+import org.sonar.api.internal.google.common.collect.ImmutableMap;
+import org.sonar.api.internal.google.common.collect.ImmutableSet;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.MessageException;
 
@@ -49,6 +53,34 @@ import static org.mockito.Mockito.when;
 import static org.sonarsource.scm.git.JGitBlameCommandTest.javaUnzip;
 
 public class GitScmProviderTest {
+
+  // Sample content for unified diffs
+  // http://www.gnu.org/software/diffutils/manual/html_node/Example-Unified.html#Example-Unified
+  private static final String CONTENT_LAO = "The Way that can be told of is not the eternal Way;\n"
+    + "The name that can be named is not the eternal name.\n"
+    + "The Nameless is the origin of Heaven and Earth;\n"
+    + "The Named is the mother of all things.\n"
+    + "Therefore let there always be non-being,\n"
+    + "  so we may see their subtlety,\n"
+    + "And let there always be being,\n"
+    + "  so we may see their outcome.\n"
+    + "The two are the same,\n"
+    + "But after they are produced,\n"
+    + "  they have different names.\n";
+
+  private static final String CONTENT_TZU = "The Nameless is the origin of Heaven and Earth;\n"
+    + "The named is the mother of all things.\n"
+    + "\n"
+    + "Therefore let there always be non-being,\n"
+    + "  so we may see their subtlety,\n"
+    + "And let there always be being,\n"
+    + "  so we may see their outcome.\n"
+    + "The two are the same,\n"
+    + "But after they are produced,\n"
+    + "  they have different names.\n"
+    + "They both may be called deep and profound.\n"
+    + "Deeper and more profound,\n"
+    + "The door of all subtleties!";
 
   @Rule
   public TemporaryFolder temp = new TemporaryFolder();
@@ -126,6 +158,7 @@ public class GitScmProviderTest {
   public void branchChangedFiles_from_merged_and_diverged() throws IOException, GitAPIException {
     createAndCommitFile("file-m1.xoo");
     createAndCommitFile("file-m2.xoo");
+    createAndCommitFile("lao.txt", CONTENT_LAO);
     ObjectId forkPoint = git.getRepository().exactRef("HEAD").getObjectId();
 
     createAndCommitFile("file-m3.xoo");
@@ -143,11 +176,35 @@ public class GitScmProviderTest {
     git.merge().include(mergePoint).call();
     createAndCommitFile("file-b2.xoo");
 
-    assertThat(newScmProvider().branchChangedFiles("master", worktree))
+    createAndCommitFile("file-m5.xoo");
+    deleteAndCommitFile("file-m5.xoo");
+
+    Set<Path> changedFiles = newScmProvider().branchChangedFiles("master", worktree);
+    assertThat(changedFiles)
       .containsExactlyInAnyOrder(
         worktree.resolve("file-m1.xoo"),
         worktree.resolve("file-b1.xoo"),
         worktree.resolve("file-b2.xoo"));
+
+    // use a subset of changed files for .branchChangedLines to verify only requested files are returned
+    assertThat(changedFiles.remove(worktree.resolve("file-b1.xoo"))).isTrue();
+
+    // generate common sample diff
+    createAndCommitFile("lao.txt", CONTENT_TZU);
+    changedFiles.add(worktree.resolve("lao.txt"));
+
+    // a file that should not yield any results
+    changedFiles.add(worktree.resolve("nonexistent"));
+
+    assertThat(newScmProvider().branchChangedLines("master", worktree, changedFiles))
+      .isEqualTo(
+        ImmutableMap.of(
+          worktree.resolve("lao.txt"), ImmutableSet.of(2, 3, 11, 12, 13),
+          worktree.resolve("file-m1.xoo"), ImmutableSet.of(2),
+          worktree.resolve("file-b2.xoo"), ImmutableSet.of(1)));
+
+    assertThat(newScmProvider().branchChangedLines("master", worktree, Collections.singleton(worktree.resolve("nonexistent"))))
+      .isEmpty();
   }
 
   @Test
@@ -253,6 +310,11 @@ public class GitScmProviderTest {
   }
 
   @Test
+  public void branchChangedLines_returns_null_when_branch_doesnt_exist() {
+    assertThat(newScmProvider().branchChangedLines("nonexistent", worktree, Collections.emptySet())).isNull();
+  }
+
+  @Test
   public void relativePathFromScmRoot_should_return_dot_project_root() {
     assertThat(newGitScmProvider().relativePathFromScmRoot(worktree)).isEqualTo(Paths.get(""));
   }
@@ -308,8 +370,12 @@ public class GitScmProviderTest {
   }
 
   private void createAndCommitFile(String relativePath) throws IOException, GitAPIException {
+    createAndCommitFile(relativePath, randomizedContent(relativePath));
+  }
+
+  private void createAndCommitFile(String relativePath, String content) throws IOException, GitAPIException {
     Path newFile = worktree.resolve(relativePath);
-    Files.write(newFile, randomizedContent(relativePath).getBytes(), StandardOpenOption.CREATE_NEW);
+    Files.write(newFile, content.getBytes(), StandardOpenOption.CREATE);
     commit(relativePath);
   }
 
