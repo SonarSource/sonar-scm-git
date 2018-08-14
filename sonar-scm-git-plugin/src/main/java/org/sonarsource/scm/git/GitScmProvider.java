@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -109,12 +110,14 @@ public class GitScmProvider extends ScmProvider {
       try (Git git = newGit(repo)) {
         for (Path path : changedFiles) {
           ChangedLinesComputer computer = new ChangedLinesComputer();
-          git.diff()
+          List<DiffEntry> diffEntries = git.diff()
             .setOutputStream(computer.receiver())
             .setOldTree(prepareTreeParser(repo, targetRef))
             .setNewTree(prepareNewTree(repo))
             .setPathFilter(PathFilter.create(rootBaseDir.relativize(path).toString()))
-            .call()
+            .call();
+
+          diffEntries
             .stream()
             .filter(diffEntry -> diffEntry.getChangeType() == DiffEntry.ChangeType.ADD
               || diffEntry.getChangeType() == DiffEntry.ChangeType.MODIFY)
