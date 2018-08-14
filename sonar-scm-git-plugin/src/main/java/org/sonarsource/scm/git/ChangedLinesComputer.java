@@ -97,7 +97,7 @@ class ChangedLinesComputer {
       if (line.startsWith("@@ ")) {
         Matcher matcher = START_LINE_IN_TARGET.matcher(line);
         if (!matcher.find()) {
-          throw new IllegalStateException();
+          throw new IllegalStateException("Invalid block header: " + line);
         }
         foundStart = true;
         lineNumInTarget = Integer.parseInt(matcher.group(1));
