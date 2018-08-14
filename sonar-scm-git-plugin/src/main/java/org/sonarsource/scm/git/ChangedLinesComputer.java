@@ -24,8 +24,12 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ChangedLinesComputer {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ChangedLinesComputer.class);
 
   private final Tracker tracker = new Tracker();
 
@@ -93,11 +97,19 @@ class ChangedLinesComputer {
     private boolean foundStart = false;
     private int lineNumInTarget;
 
+    private boolean abort = false;
+
     private void parseLine(String line) {
+      if (abort) {
+        return;
+      }
+
       if (line.startsWith("@@ ")) {
         Matcher matcher = START_LINE_IN_TARGET.matcher(line);
         if (!matcher.find()) {
-          throw new IllegalStateException("Invalid block header: " + line);
+          LOG.error("Invalid block header, abort processing diff: %s", line);
+          abort = true;
+          return;
         }
         foundStart = true;
         lineNumInTarget = Integer.parseInt(matcher.group(1));

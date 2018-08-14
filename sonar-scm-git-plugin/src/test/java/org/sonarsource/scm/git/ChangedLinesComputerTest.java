@@ -128,8 +128,8 @@ public class ChangedLinesComputerTest {
     assertThat(underTest.changedLines()).containsExactly(2, 3, 11, 12, 13);
   }
 
-  @Test(expected = IllegalStateException.class)
-  public void crash_on_invalid_start_line_format() throws IOException {
+  @Test
+  public void do_not_crash_on_invalid_start_line_format() throws IOException {
     String example = "diff --git a/file-b1.xoo b/file-b1.xoo\n"
       + "index 0000000..c2a9048\n"
       + "--- a/foo\n"
@@ -140,7 +140,7 @@ public class ChangedLinesComputerTest {
       + "+added line 2\n";
 
     printDiff(example);
-    underTest.changedLines();
+    assertThat(underTest.changedLines()).isEmpty();
   }
 
   private void printDiff(String unifiedDiff) throws IOException {
