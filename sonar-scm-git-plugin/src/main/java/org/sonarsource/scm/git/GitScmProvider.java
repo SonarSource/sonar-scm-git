@@ -41,15 +41,15 @@ import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.sonar.api.batch.scm.BlameCommand;
 import org.sonar.api.batch.scm.ScmProvider;
 import org.sonar.api.utils.MessageException;
+import org.sonar.api.utils.log.Logger;
+import org.sonar.api.utils.log.Loggers;
 
 public class GitScmProvider extends ScmProvider {
 
-  private static final Logger LOG = LoggerFactory.getLogger(GitScmProvider.class);
+  private static final Logger LOG = Loggers.get(GitScmProvider.class);
 
   private final JGitBlameCommand jgitBlameCommand;
 
