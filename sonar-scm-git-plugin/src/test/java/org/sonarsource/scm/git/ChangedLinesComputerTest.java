@@ -21,12 +21,15 @@ package org.sonarsource.scm.git;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ChangedLinesComputerTest {
-
+  @Rule
+  public ExpectedException exception = ExpectedException.none();
   private final ChangedLinesComputer underTest = new ChangedLinesComputer();
 
   @Test
@@ -129,7 +132,7 @@ public class ChangedLinesComputerTest {
   }
 
   @Test
-  public void do_not_crash_on_invalid_start_line_format() throws IOException {
+  public void throw_exception_invalid_start_line_format() throws IOException {
     String example = "diff --git a/file-b1.xoo b/file-b1.xoo\n"
       + "index 0000000..c2a9048\n"
       + "--- a/foo\n"
@@ -139,8 +142,8 @@ public class ChangedLinesComputerTest {
       + "+added line 1\n"
       + "+added line 2\n";
 
+    exception.expect(IllegalStateException.class);
     printDiff(example);
-    assertThat(underTest.changedLines()).isEmpty();
   }
 
   private void printDiff(String unifiedDiff) throws IOException {

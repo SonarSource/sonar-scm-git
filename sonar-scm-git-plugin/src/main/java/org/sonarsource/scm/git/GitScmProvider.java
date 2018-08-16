@@ -110,22 +110,27 @@ public class GitScmProvider extends ScmProvider {
       try (Git git = newGit(repo)) {
         for (Path path : changedFiles) {
           ChangedLinesComputer computer = new ChangedLinesComputer();
-          List<DiffEntry> diffEntries = git.diff()
-            .setOutputStream(computer.receiver())
-            .setOldTree(prepareTreeParser(repo, targetRef))
-            .setPathFilter(PathFilter.create(rootBaseDir.relativize(path).toString()))
-            .call();
 
-          diffEntries
-            .stream()
-            .filter(diffEntry -> diffEntry.getChangeType() == DiffEntry.ChangeType.ADD
-              || diffEntry.getChangeType() == DiffEntry.ChangeType.MODIFY)
-            .forEach(diffEntry -> changedLines.put(path, computer.changedLines()));
+          try {
+            List<DiffEntry> diffEntries = git.diff()
+              .setOutputStream(computer.receiver())
+              .setOldTree(prepareTreeParser(repo, targetRef))
+              .setPathFilter(PathFilter.create(rootBaseDir.relativize(path).toString()))
+              .call();
+
+            diffEntries
+              .stream()
+              .filter(diffEntry -> diffEntry.getChangeType() == DiffEntry.ChangeType.ADD
+                || diffEntry.getChangeType() == DiffEntry.ChangeType.MODIFY)
+              .forEach(diffEntry -> changedLines.put(path, computer.changedLines()));
+          } catch (Exception e) {
+            LOG.warn("Failed to get changed lines from git for file " + path, e);
+          }
         }
       }
       return changedLines;
-    } catch (IOException | GitAPIException e) {
-      LOG.warn(e.getMessage(), e);
+    } catch (Exception e) {
+      LOG.warn("Failed to get changed lines from git", e);
     }
     return null;
   }
