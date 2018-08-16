@@ -113,7 +113,6 @@ public class GitScmProvider extends ScmProvider {
           List<DiffEntry> diffEntries = git.diff()
             .setOutputStream(computer.receiver())
             .setOldTree(prepareTreeParser(repo, targetRef))
-            .setNewTree(prepareNewTree(repo))
             .setPathFilter(PathFilter.create(rootBaseDir.relativize(path).toString()))
             .call();
 

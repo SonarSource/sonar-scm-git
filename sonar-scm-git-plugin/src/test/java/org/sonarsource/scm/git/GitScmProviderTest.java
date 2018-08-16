@@ -25,7 +25,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import org.eclipse.jgit.api.DiffCommand;
@@ -46,6 +50,7 @@ import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.MessageException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.data.MapEntry.entry;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Mockito.mock;
@@ -200,18 +205,38 @@ public class GitScmProviderTest {
       .isEqualTo(
         ImmutableMap.of(
           worktree.resolve("lao.txt"), ImmutableSet.of(2, 3, 11, 12, 13),
-          worktree.resolve("file-m1.xoo"), ImmutableSet.of(2),
-          worktree.resolve("file-b2.xoo"), ImmutableSet.of(1)));
+          worktree.resolve("file-m1.xoo"), ImmutableSet.of(4),
+          worktree.resolve("file-b2.xoo"), ImmutableSet.of(1, 2, 3)));
 
     assertThat(newScmProvider().branchChangedLines("master", worktree, Collections.singleton(worktree.resolve("nonexistent"))))
       .isEmpty();
   }
 
   @Test
+  public void branchChangedLines_should_be_correct_when_change_is_not_committed() throws GitAPIException, IOException {
+    String fileName = "file-in-first-commit.xoo";
+    git.branchCreate().setName("b1").call();
+    git.checkout().setName("b1").call();
+
+    // this line is committed
+    addLineToFile(fileName, 3);
+    commit(fileName);
+
+    // this line is not committed
+    addLineToFile(fileName, 1);
+
+    Path filePath = worktree.resolve(fileName);
+    Map<Path, Set<Integer>> changedLines = newScmProvider().branchChangedLines("master", worktree, Collections.singleton(filePath));
+
+    // both lines appear correctly
+    assertThat(changedLines).containsExactly(entry(filePath, new HashSet<>(Arrays.asList(1, 4))));
+  }
+
+  @Test
   public void branchChangedFiles_when_git_work_tree_is_above_project_basedir() throws IOException, GitAPIException {
     git.branchCreate().setName("b1").call();
     git.checkout().setName("b1").call();
-    
+
     Path projectDir = worktree.resolve("project");
     Files.createDirectory(projectDir);
     createAndCommitFile("project/file-b1");
@@ -358,19 +383,28 @@ public class GitScmProviderTest {
     assertThat(provider.revisionId(projectDir)).isEqualTo(sha1after);
   }
 
-  private String randomizedContent(String prefix) {
+  private String randomizedContent(String prefix, int numLines) {
+    StringBuilder sb = new StringBuilder();
+    for (int line = 0; line < numLines; line++) {
+      sb.append(randomizedLine(prefix));
+      sb.append("\n");
+    }
+    return sb.toString();
+  }
+
+  private String randomizedLine(String prefix) {
     StringBuilder sb = new StringBuilder(prefix);
     for (int i = 0; i < 4; i++) {
       sb.append(' ');
       for (int j = 0; j < prefix.length(); j++) {
-        sb.append((char)('a' + random.nextInt(26)));
+        sb.append((char) ('a' + random.nextInt(26)));
       }
     }
-    return sb.append("\n").toString();
+    return sb.toString();
   }
 
   private void createAndCommitFile(String relativePath) throws IOException, GitAPIException {
-    createAndCommitFile(relativePath, randomizedContent(relativePath));
+    createAndCommitFile(relativePath, randomizedContent(relativePath, 3));
   }
 
   private void createAndCommitFile(String relativePath, String content) throws IOException, GitAPIException {
@@ -379,8 +413,16 @@ public class GitScmProviderTest {
     commit(relativePath);
   }
 
+  private void addLineToFile(String relativePath, int lineNumber) throws IOException {
+    Path filePath = worktree.resolve(relativePath);
+    List<String> lines = Files.readAllLines(filePath);
+    lines.add(lineNumber - 1, randomizedLine(relativePath));
+    Files.write(filePath, lines, StandardOpenOption.TRUNCATE_EXISTING);
+
+  }
+
   private void appendToAndCommitFile(String relativePath) throws IOException, GitAPIException {
-    Files.write(worktree.resolve(relativePath), randomizedContent(relativePath).getBytes(), StandardOpenOption.APPEND);
+    Files.write(worktree.resolve(relativePath), randomizedContent(relativePath, 1).getBytes(), StandardOpenOption.APPEND);
     commit(relativePath);
   }
 
