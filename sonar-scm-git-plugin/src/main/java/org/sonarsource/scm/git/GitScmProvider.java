@@ -22,9 +22,12 @@ package org.sonarsource.scm.git;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
+import javax.annotation.CheckForNull;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
@@ -37,15 +40,16 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.sonar.api.batch.scm.BlameCommand;
 import org.sonar.api.batch.scm.ScmProvider;
 import org.sonar.api.utils.MessageException;
+import org.sonar.api.utils.log.Logger;
+import org.sonar.api.utils.log.Loggers;
 
 public class GitScmProvider extends ScmProvider {
 
-  private static final Logger LOG = LoggerFactory.getLogger(GitScmProvider.class);
+  private static final Logger LOG = Loggers.get(GitScmProvider.class);
 
   private final JGitBlameCommand jgitBlameCommand;
 
@@ -69,16 +73,12 @@ public class GitScmProvider extends ScmProvider {
     return this.jgitBlameCommand;
   }
 
-  @Nullable
+  @CheckForNull
   @Override
   public Set<Path> branchChangedFiles(String targetBranchName, Path rootBaseDir) {
     try (Repository repo = buildRepo(rootBaseDir)) {
-      Ref targetRef = repo.exactRef("refs/heads/" + targetBranchName);
+      Ref targetRef = resolveTargetRef(targetBranchName, repo);
       if (targetRef == null) {
-        targetRef = repo.exactRef("refs/remotes/origin/" + targetBranchName);
-      }
-      if (targetRef == null) {
-        LOG.warn("Could not find ref: {} in refs/heads or refs/remotes/origin", targetBranchName);
         return null;
       }
 
@@ -97,6 +97,57 @@ public class GitScmProvider extends ScmProvider {
     return null;
   }
 
+  @CheckForNull
+  public Map<Path, Set<Integer>> branchChangedLines(String targetBranchName, Path rootBaseDir, Set<Path> changedFiles) {
+    try (Repository repo = buildRepo(rootBaseDir)) {
+      Ref targetRef = resolveTargetRef(targetBranchName, repo);
+      if (targetRef == null) {
+        return null;
+      }
+
+      Map<Path, Set<Integer>> changedLines = new HashMap<>();
+
+      try (Git git = newGit(repo)) {
+        for (Path path : changedFiles) {
+          ChangedLinesComputer computer = new ChangedLinesComputer();
+
+          try {
+            List<DiffEntry> diffEntries = git.diff()
+              .setOutputStream(computer.receiver())
+              .setOldTree(prepareTreeParser(repo, targetRef))
+              .setPathFilter(PathFilter.create(rootBaseDir.relativize(path).toString()))
+              .call();
+
+            diffEntries
+              .stream()
+              .filter(diffEntry -> diffEntry.getChangeType() == DiffEntry.ChangeType.ADD
+                || diffEntry.getChangeType() == DiffEntry.ChangeType.MODIFY)
+              .forEach(diffEntry -> changedLines.put(path, computer.changedLines()));
+          } catch (Exception e) {
+            LOG.warn("Failed to get changed lines from git for file " + path, e);
+          }
+        }
+      }
+      return changedLines;
+    } catch (Exception e) {
+      LOG.warn("Failed to get changed lines from git", e);
+    }
+    return null;
+  }
+
+  @CheckForNull
+  private static Ref resolveTargetRef(String targetBranchName, Repository repo) throws IOException {
+    Ref targetRef = repo.exactRef("refs/heads/" + targetBranchName);
+    if (targetRef == null) {
+      targetRef = repo.exactRef("refs/remotes/origin/" + targetBranchName);
+    }
+    if (targetRef == null) {
+      LOG.warn("Could not find ref: {} in refs/heads or refs/remotes/origin", targetBranchName);
+      return null;
+    }
+    return targetRef;
+  }
+
   @Override
   public Path relativePathFromScmRoot(Path path) {
     RepositoryBuilder builder = getVerifiedRepositoryBuilder(path);
@@ -112,7 +163,7 @@ public class GitScmProvider extends ScmProvider {
       throw new IllegalStateException("I/O error while getting revision ID for path: " + path, e);
     }
   }
-  
+
   private static AbstractTreeIterator prepareNewTree(Repository repo) throws IOException {
     CanonicalTreeParser treeParser = new CanonicalTreeParser();
     try (ObjectReader objectReader = repo.newObjectReader()) {
@@ -120,7 +171,7 @@ public class GitScmProvider extends ScmProvider {
     }
     return treeParser;
   }
-  
+
   private static Ref getHead(Repository repo) throws IOException {
     return repo.exactRef("HEAD");
   }
