@@ -54,6 +54,7 @@ import static org.assertj.core.data.MapEntry.entry;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sonarsource.scm.git.JGitBlameCommandTest.javaUnzip;
 
@@ -320,6 +321,7 @@ public class GitScmProviderTest {
     DiffCommand diffCommand = mock(DiffCommand.class);
     when(diffCommand.setShowNameAndStatusOnly(anyBoolean())).thenReturn(diffCommand);
     when(diffCommand.setOldTree(any())).thenReturn(diffCommand);
+    when(diffCommand.setNewTree(any())).thenReturn(diffCommand);
     when(diffCommand.call()).thenThrow(mock(GitAPIException.class));
 
     Git git = mock(Git.class);
@@ -331,7 +333,8 @@ public class GitScmProviderTest {
         return git;
       }
     };
-    assertThat(provider.branchChangedFiles("branch", worktree)).isNull();
+    assertThat(provider.branchChangedFiles("master", worktree)).isNull();
+    verify(diffCommand).call();
   }
 
   @Test
