@@ -35,6 +35,7 @@ import java.util.Set;
 import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevWalk;
@@ -342,6 +343,34 @@ public class GitScmProviderTest {
   @Test
   public void branchChangedLines_returns_null_when_branch_doesnt_exist() {
     assertThat(newScmProvider().branchChangedLines("nonexistent", worktree, emptySet())).isNull();
+  }
+
+  @Test
+  public void branchChangedLines_omits_files_with_git_api_errors() throws GitAPIException {
+    DiffEntry diffEntry = mock(DiffEntry.class);
+    when(diffEntry.getChangeType()).thenReturn(DiffEntry.ChangeType.MODIFY);
+
+    DiffCommand diffCommand = mock(DiffCommand.class);
+    when(diffCommand.setOutputStream(any())).thenReturn(diffCommand);
+    when(diffCommand.setOldTree(any())).thenReturn(diffCommand);
+    when(diffCommand.setPathFilter(any())).thenReturn(diffCommand);
+    when(diffCommand.call())
+      .thenReturn(Collections.singletonList(diffEntry))
+      .thenThrow(mock(GitAPIException.class));
+
+    Git git = mock(Git.class);
+    when(git.diff()).thenReturn(diffCommand);
+
+    GitScmProvider provider = new GitScmProvider(mockCommand()) {
+      @Override
+      Git newGit(Repository repo) {
+        return git;
+      }
+    };
+    assertThat(provider.branchChangedLines("master", worktree,
+      ImmutableSet.of(worktree.resolve("foo"), worktree.resolve("bar"))))
+      .isEqualTo(ImmutableMap.of(worktree.resolve("foo"), emptySet()));
+    verify(diffCommand, times(2)).call();
   }
 
   @Test
