@@ -49,11 +49,13 @@ import org.sonar.api.internal.google.common.collect.ImmutableSet;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.MessageException;
 
+import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.MapEntry.entry;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.sonarsource.scm.git.JGitBlameCommandTest.javaUnzip;
@@ -339,7 +341,18 @@ public class GitScmProviderTest {
 
   @Test
   public void branchChangedLines_returns_null_when_branch_doesnt_exist() {
-    assertThat(newScmProvider().branchChangedLines("nonexistent", worktree, Collections.emptySet())).isNull();
+    assertThat(newScmProvider().branchChangedLines("nonexistent", worktree, emptySet())).isNull();
+  }
+
+  @Test
+  public void branchChangedLines_returns_null_on_io_errors_of_repo_builder() {
+    GitScmProvider provider = new GitScmProvider(mockCommand()) {
+      @Override
+      Repository buildRepo(Path basedir) throws IOException {
+        throw new IOException();
+      }
+    };
+    assertThat(provider.branchChangedLines("branch", worktree, emptySet())).isNull();
   }
 
   @Test
