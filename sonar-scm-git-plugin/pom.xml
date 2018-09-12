@@ -20,7 +20,7 @@
   <properties>
     <!-- Minimal supported version of SonarQube. It is defined in travis.sh 
       for integration testing too. -->
-    <sonar.apiVersion>7.4-alpha1</sonar.apiVersion>
+    <sonar.apiVersion>7.4-alpha2</sonar.apiVersion>
     <sonar.pluginName>Git</sonar.pluginName>
     <sonar.pluginClass>org.sonarsource.scm.git.GitPlugin</sonar.pluginClass>
   </properties>
