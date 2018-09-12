@@ -47,6 +47,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.sonar.api.internal.google.common.collect.ImmutableMap;
 import org.sonar.api.internal.google.common.collect.ImmutableSet;
+import org.sonar.api.notifications.AnalysisWarnings;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.MessageException;
 
@@ -120,7 +121,7 @@ public class GitScmProviderTest {
 
   @Test
   public void returnImplem() {
-    JGitBlameCommand jblameCommand = new JGitBlameCommand(new PathResolver());
+    JGitBlameCommand jblameCommand = new JGitBlameCommand(new PathResolver(), mock(AnalysisWarnings.class));
     GitScmProvider gitScmProvider = new GitScmProvider(jblameCommand);
 
     assertThat(gitScmProvider.blameCommand()).isEqualTo(jblameCommand);
