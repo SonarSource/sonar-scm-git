@@ -35,6 +35,7 @@ import org.eclipse.jgit.lib.Repository;
 import org.sonar.api.batch.fs.InputFile;
 import org.sonar.api.batch.scm.BlameCommand;
 import org.sonar.api.batch.scm.BlameLine;
+import org.sonar.api.notifications.AnalysisWarnings;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
@@ -44,9 +45,11 @@ public class JGitBlameCommand extends BlameCommand {
   private static final Logger LOG = Loggers.get(JGitBlameCommand.class);
 
   private final PathResolver pathResolver;
+  private final AnalysisWarnings analysisWarnings;
 
-  public JGitBlameCommand(PathResolver pathResolver) {
+  public JGitBlameCommand(PathResolver pathResolver, AnalysisWarnings analysisWarnings) {
     this.pathResolver = pathResolver;
+    this.analysisWarnings = analysisWarnings;
   }
 
   @Override
@@ -57,6 +60,9 @@ public class JGitBlameCommand extends BlameCommand {
       if (Files.isRegularFile(gitBaseDir.toPath().resolve(".git/shallow"))) {
         LOG.warn("Shallow clone detected, no blame information will be provided. "
           + "You can convert to non-shallow with 'git fetch --unshallow'.");
+        analysisWarnings.addUnique("Shallow clone detected during the analysis. "
+          + "Some files will miss SCM information. This will affect features like auto-assignment of issues. "
+          + "Please configure your build to disable shallow clone.");
         return;
       }
       Stream<InputFile> stream = StreamSupport.stream(input.filesToBlame().spliterator(), true);

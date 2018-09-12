@@ -43,6 +43,7 @@ import org.sonar.api.batch.fs.internal.TestInputFileBuilder;
 import org.sonar.api.batch.scm.BlameCommand.BlameInput;
 import org.sonar.api.batch.scm.BlameCommand.BlameOutput;
 import org.sonar.api.batch.scm.BlameLine;
+import org.sonar.api.notifications.AnalysisWarnings;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.DateUtils;
 import org.sonar.api.utils.MessageException;
@@ -52,6 +53,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import static java.lang.String.format;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -70,19 +72,15 @@ public class JGitBlameCommandTest {
   @Rule
   public LogTester logTester = new LogTester();
 
-  private BlameInput input;
-
-  @Before
-  public void prepare() throws IOException {
-    input = mock(BlameInput.class);
-  }
+  private final BlameInput input = mock(BlameInput.class);
+  private final AnalysisWarnings analysisWarnings = mock(AnalysisWarnings.class);
 
   @Test
   public void testBlame() throws IOException {
     File projectDir = temp.newFolder();
     javaUnzip(new File("test-repos/dummy-git.zip"), projectDir);
 
-    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
+    JGitBlameCommand jGitBlameCommand = newJGitBlameCommand();
 
     File baseDir = new File(projectDir, "dummy-git");
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
@@ -117,6 +115,7 @@ public class JGitBlameCommandTest {
     }
 
     verify(blameResult).blameResult(inputFile, expectedBlame);
+    verifyZeroInteractions(analysisWarnings);
   }
 
   @Test
@@ -124,7 +123,7 @@ public class JGitBlameCommandTest {
     File projectDir = temp.newFolder();
     javaUnzip(new File("test-repos/dummy-git.zip"), projectDir);
 
-    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
+    JGitBlameCommand jGitBlameCommand = newJGitBlameCommand();
 
     File baseDir = new File(projectDir, "dummy-git");
 
@@ -150,7 +149,7 @@ public class JGitBlameCommandTest {
     File projectDir = temp.newFolder();
     javaUnzip(new File("test-repos/dummy-git-nested.zip"), projectDir);
 
-    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
+    JGitBlameCommand jGitBlameCommand = newJGitBlameCommand();
 
     File baseDir = new File(projectDir, "dummy-git-nested/dummy-project");
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
@@ -202,7 +201,7 @@ public class JGitBlameCommandTest {
     File projectDir = temp.newFolder();
     javaUnzip(new File("test-repos/dummy-git.zip"), projectDir);
 
-    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
+    JGitBlameCommand jGitBlameCommand = newJGitBlameCommand();
 
     File baseDir = new File(projectDir, "dummy-git");
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
@@ -225,7 +224,7 @@ public class JGitBlameCommandTest {
     File projectDir = temp.newFolder();
     javaUnzip(new File("test-repos/dummy-git.zip"), projectDir);
 
-    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
+    JGitBlameCommand jGitBlameCommand = newJGitBlameCommand();
 
     File baseDir = new File(projectDir, "dummy-git");
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
@@ -252,7 +251,7 @@ public class JGitBlameCommandTest {
     File projectDir = temp.newFolder();
     javaUnzip(new File("test-repos/dummy-git.zip"), projectDir);
 
-    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
+    JGitBlameCommand jGitBlameCommand = newJGitBlameCommand();
 
     File baseDir = new File(projectDir, "dummy-git");
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
@@ -290,13 +289,19 @@ public class JGitBlameCommandTest {
     DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA).build();
     when(input.filesToBlame()).thenReturn(Collections.singleton(inputFile));
 
-    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver());
+    JGitBlameCommand jGitBlameCommand = newJGitBlameCommand();
     BlameOutput output = mock(BlameOutput.class);
     jGitBlameCommand.blame(input, output);
 
     assertThat(logTester.logs()).first()
       .matches(s -> s.contains("Shallow clone detected, no blame information will be provided."));
     verifyZeroInteractions(output);
+
+    verify(analysisWarnings).addUnique(startsWith("Shallow clone detected"));
+  }
+
+  private JGitBlameCommand newJGitBlameCommand() {
+    return new JGitBlameCommand(new PathResolver(), analysisWarnings);
   }
 
   public static void javaUnzip(File zip, File toDir) {
