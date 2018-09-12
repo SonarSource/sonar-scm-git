@@ -53,9 +53,11 @@ public class GitScmProvider extends ScmProvider {
   private static final Logger LOG = Loggers.get(GitScmProvider.class);
 
   private final JGitBlameCommand jgitBlameCommand;
+  private final AnalysisWarningsWrapper analysisWarnings;
 
-  public GitScmProvider(JGitBlameCommand jgitBlameCommand) {
+  public GitScmProvider(JGitBlameCommand jgitBlameCommand, AnalysisWarningsWrapper analysisWarnings) {
     this.jgitBlameCommand = jgitBlameCommand;
+    this.analysisWarnings = analysisWarnings;
   }
 
   @Override
@@ -143,13 +145,16 @@ public class GitScmProvider extends ScmProvider {
   }
 
   @CheckForNull
-  private static Ref resolveTargetRef(String targetBranchName, Repository repo) throws IOException {
+  private Ref resolveTargetRef(String targetBranchName, Repository repo) throws IOException {
     Ref targetRef = repo.exactRef("refs/heads/" + targetBranchName);
     if (targetRef == null) {
       targetRef = repo.exactRef("refs/remotes/origin/" + targetBranchName);
     }
     if (targetRef == null) {
       LOG.warn("Could not find ref: {} in refs/heads or refs/remotes/origin", targetBranchName);
+      analysisWarnings.addUnique(String.format("Could not find ref '%s' in refs/heads or refs/remotes/origin. "
+        + "You may see unexpected issues and changes. "
+        + "Please make sure to fetch this ref before pull request analysis.", targetBranchName));
       return null;
     }
     return targetRef;
