@@ -56,6 +56,7 @@ public class GitTest {
 
   @ClassRule
   public static Orchestrator orchestrator = Orchestrator.builderEnv()
+    .setSonarVersion(getSonarVersion())
     .addPlugin(FileLocation.byWildcardMavenFilename(new File("../sonar-scm-git-plugin/target"), "sonar-scm-git-plugin-*.jar"))
     .setOrchestratorProperty("javaVersion", "LATEST_RELEASE")
     .addPlugin("java")
@@ -188,4 +189,8 @@ public class GitTest {
     return result;
   }
 
+  private static String getSonarVersion() {
+    String versionProperty = System.getProperty("sonar.runtimeVersion");
+    return versionProperty != null ? versionProperty : "LATEST_RELEASE";
+  }
 }
