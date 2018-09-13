@@ -24,6 +24,10 @@ import org.sonar.api.Plugin;
 public final class GitPlugin implements Plugin {
   @Override
   public void define(Context context) {
-    context.addExtensions(GitScmProvider.class, JGitBlameCommand.class);
+    context.addExtensions(
+      GitScmProvider.class,
+      JGitBlameCommand.class,
+      AnalysisWarningsSupport.getAnalysisWarningsWrapper(context.getRuntime())
+    );
   }
 }

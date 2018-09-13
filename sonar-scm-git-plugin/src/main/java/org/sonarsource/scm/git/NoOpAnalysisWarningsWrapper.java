@@ -19,23 +19,9 @@
  */
 package org.sonarsource.scm.git;
 
-import org.junit.Test;
-import org.sonar.api.Plugin;
-import org.sonar.api.SonarQubeSide;
-import org.sonar.api.SonarRuntime;
-import org.sonar.api.internal.SonarRuntimeImpl;
-import org.sonar.api.utils.Version;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-public class GitPluginTest {
-
-  @Test
-  public void getExtensions() {
-    SonarRuntime runtime = SonarRuntimeImpl.forSonarQube(Version.create(5, 6), SonarQubeSide.SCANNER);
-    Plugin.Context context = new Plugin.Context(runtime);
-    new GitPlugin().define(context);
-    assertThat(context.getExtensions()).hasSize(3);
+public class NoOpAnalysisWarningsWrapper implements AnalysisWarningsWrapper {
+  @Override
+  public void addUnique(String text) {
+    // do nothing
   }
-
 }
