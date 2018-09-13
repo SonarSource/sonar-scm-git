@@ -35,7 +35,6 @@ import org.eclipse.jgit.lib.Repository;
 import org.sonar.api.batch.fs.InputFile;
 import org.sonar.api.batch.scm.BlameCommand;
 import org.sonar.api.batch.scm.BlameLine;
-import org.sonar.api.notifications.AnalysisWarnings;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
@@ -45,9 +44,9 @@ public class JGitBlameCommand extends BlameCommand {
   private static final Logger LOG = Loggers.get(JGitBlameCommand.class);
 
   private final PathResolver pathResolver;
-  private final AnalysisWarnings analysisWarnings;
+  private final AnalysisWarningsWrapper analysisWarnings;
 
-  public JGitBlameCommand(PathResolver pathResolver, AnalysisWarnings analysisWarnings) {
+  public JGitBlameCommand(PathResolver pathResolver, AnalysisWarningsWrapper analysisWarnings) {
     this.pathResolver = pathResolver;
     this.analysisWarnings = analysisWarnings;
   }

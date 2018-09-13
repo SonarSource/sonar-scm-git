@@ -43,7 +43,6 @@ import org.sonar.api.batch.fs.internal.TestInputFileBuilder;
 import org.sonar.api.batch.scm.BlameCommand.BlameInput;
 import org.sonar.api.batch.scm.BlameCommand.BlameOutput;
 import org.sonar.api.batch.scm.BlameLine;
-import org.sonar.api.notifications.AnalysisWarnings;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.DateUtils;
 import org.sonar.api.utils.MessageException;
@@ -73,7 +72,7 @@ public class JGitBlameCommandTest {
   public LogTester logTester = new LogTester();
 
   private final BlameInput input = mock(BlameInput.class);
-  private final AnalysisWarnings analysisWarnings = mock(AnalysisWarnings.class);
+  private final AnalysisWarningsWrapper analysisWarnings = mock(AnalysisWarningsWrapper.class);
 
   @Test
   public void testBlame() throws IOException {

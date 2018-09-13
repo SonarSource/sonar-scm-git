@@ -19,23 +19,21 @@
  */
 package org.sonarsource.scm.git;
 
-import org.junit.Test;
-import org.sonar.api.Plugin;
-import org.sonar.api.SonarQubeSide;
 import org.sonar.api.SonarRuntime;
-import org.sonar.api.internal.SonarRuntimeImpl;
 import org.sonar.api.utils.Version;
 
-import static org.assertj.core.api.Assertions.assertThat;
+class AnalysisWarningsSupport {
 
-public class GitPluginTest {
+  private static final Version SQ_MIN_SUPPORTED_VERSION = Version.create(7, 4);
 
-  @Test
-  public void getExtensions() {
-    SonarRuntime runtime = SonarRuntimeImpl.forSonarQube(Version.create(5, 6), SonarQubeSide.SCANNER);
-    Plugin.Context context = new Plugin.Context(runtime);
-    new GitPlugin().define(context);
-    assertThat(context.getExtensions()).hasSize(3);
+  private AnalysisWarningsSupport() {
+    // do not instantiate
   }
 
+  static Class<?> getAnalysisWarningsWrapper(SonarRuntime runtime) {
+    if (runtime.getApiVersion().isGreaterThanOrEqual(SQ_MIN_SUPPORTED_VERSION)) {
+      return DefaultAnalysisWarningsWrapper.class;
+    }
+    return NoOpAnalysisWarningsWrapper.class;
+  }
 }
