@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import org.eclipse.jgit.api.Git;
@@ -115,7 +116,7 @@ public class GitScmProvider extends ScmProvider {
             List<DiffEntry> diffEntries = git.diff()
               .setOutputStream(computer.receiver())
               .setOldTree(prepareTreeParser(repo, targetRef))
-              .setPathFilter(PathFilter.create(rootBaseDir.relativize(path).toString()))
+              .setPathFilter(PathFilter.create(toGitPath(rootBaseDir.relativize(path).toString())))
               .call();
 
             diffEntries
@@ -133,6 +134,10 @@ public class GitScmProvider extends ScmProvider {
       LOG.warn("Failed to get changed lines from git", e);
     }
     return null;
+  }
+
+  private static String toGitPath(String path) {
+    return path.replaceAll(Pattern.quote(File.separator), "/");
   }
 
   @CheckForNull
