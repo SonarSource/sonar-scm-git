@@ -99,6 +99,7 @@ public class GitScmProvider extends ScmProvider {
   }
 
   @CheckForNull
+  @Override
   public Map<Path, Set<Integer>> branchChangedLines(String targetBranchName, Path rootBaseDir, Set<Path> changedFiles) {
     try (Repository repo = buildRepo(rootBaseDir)) {
       Ref targetRef = resolveTargetRef(targetBranchName, repo);
