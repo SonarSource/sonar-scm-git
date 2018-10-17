@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -43,6 +42,7 @@ import org.sonar.api.batch.fs.internal.TestInputFileBuilder;
 import org.sonar.api.batch.scm.BlameCommand.BlameInput;
 import org.sonar.api.batch.scm.BlameCommand.BlameOutput;
 import org.sonar.api.batch.scm.BlameLine;
+import org.sonar.api.notifications.AnalysisWarnings;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.DateUtils;
 import org.sonar.api.utils.MessageException;
@@ -55,6 +55,7 @@ import static org.junit.Assume.assumeTrue;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
@@ -72,7 +73,6 @@ public class JGitBlameCommandTest {
   public LogTester logTester = new LogTester();
 
   private final BlameInput input = mock(BlameInput.class);
-  private final AnalysisWarningsWrapper analysisWarnings = mock(AnalysisWarningsWrapper.class);
 
   @Test
   public void testBlame() throws IOException {
@@ -114,7 +114,6 @@ public class JGitBlameCommandTest {
     }
 
     verify(blameResult).blameResult(inputFile, expectedBlame);
-    verifyZeroInteractions(analysisWarnings);
   }
 
   @Test
@@ -276,7 +275,7 @@ public class JGitBlameCommandTest {
   }
 
   @Test
-  public void should_fail_fast_when_clone_is_shallow() throws IOException {
+  public void return_early_when_shallow_clone_detected() throws IOException {
     File projectDir = temp.newFolder();
     javaUnzip(new File("test-repos/shallow-git.zip"), projectDir);
 
@@ -288,7 +287,10 @@ public class JGitBlameCommandTest {
     DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA).build();
     when(input.filesToBlame()).thenReturn(Collections.singleton(inputFile));
 
-    JGitBlameCommand jGitBlameCommand = newJGitBlameCommand();
+    // register warning with default wrapper
+    AnalysisWarnings analysisWarnings = mock(AnalysisWarnings.class);
+    AnalysisWarningsWrapper analysisWarningsWrapper = new DefaultAnalysisWarningsWrapper(analysisWarnings);
+    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver(), analysisWarningsWrapper);
     BlameOutput output = mock(BlameOutput.class);
     jGitBlameCommand.blame(input, output);
 
@@ -297,13 +299,19 @@ public class JGitBlameCommandTest {
     verifyZeroInteractions(output);
 
     verify(analysisWarnings).addUnique(startsWith("Shallow clone detected"));
+
+    // do not register warning with noop wrapper
+    jGitBlameCommand = new JGitBlameCommand(new PathResolver(), new NoOpAnalysisWarningsWrapper());
+    jGitBlameCommand.blame(input, output);
+
+    verifyNoMoreInteractions(analysisWarnings);
   }
 
   private JGitBlameCommand newJGitBlameCommand() {
-    return new JGitBlameCommand(new PathResolver(), analysisWarnings);
+    return new JGitBlameCommand(new PathResolver(), mock(AnalysisWarningsWrapper.class));
   }
 
-  public static void javaUnzip(File zip, File toDir) {
+  static void javaUnzip(File zip, File toDir) {
     try {
       try (ZipFile zipFile = new ZipFile(zip)) {
         Enumeration<? extends ZipEntry> entries = zipFile.entries();
