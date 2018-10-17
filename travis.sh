@@ -7,6 +7,7 @@ function configureTravis {
   source ~/.local/bin/install                                                                                                                                    
 }
 configureTravis
+. installJDK8
 
 export DEPLOY_PULL_REQUEST=true
 
