@@ -100,8 +100,8 @@ public class GitScmProvider extends ScmProvider {
 
   @CheckForNull
   @Override
-  public Map<Path, Set<Integer>> branchChangedLines(String targetBranchName, Path rootBaseDir, Set<Path> changedFiles) {
-    try (Repository repo = buildRepo(rootBaseDir)) {
+  public Map<Path, Set<Integer>> branchChangedLines(String targetBranchName, Path projectBaseDir, Set<Path> changedFiles) {
+    try (Repository repo = buildRepo(projectBaseDir)) {
       Ref targetRef = resolveTargetRef(targetBranchName, repo);
       if (targetRef == null) {
         return null;
@@ -112,12 +112,13 @@ public class GitScmProvider extends ScmProvider {
       try (Git git = newGit(repo)) {
         for (Path path : changedFiles) {
           ChangedLinesComputer computer = new ChangedLinesComputer();
+          Path repoRootDir = repo.getDirectory().toPath().getParent();
 
           try {
             List<DiffEntry> diffEntries = git.diff()
               .setOutputStream(computer.receiver())
               .setOldTree(prepareTreeParser(repo, targetRef))
-              .setPathFilter(PathFilter.create(toGitPath(rootBaseDir.relativize(path).toString())))
+              .setPathFilter(PathFilter.create(toGitPath(repoRootDir.relativize(path).toString())))
               .call();
 
             diffEntries
