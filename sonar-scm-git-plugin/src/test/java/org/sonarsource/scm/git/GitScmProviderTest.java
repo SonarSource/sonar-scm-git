@@ -237,6 +237,29 @@ public class GitScmProviderTest {
   }
 
   @Test
+  public void branchChangedLines_uses_relative_paths_from_project_root() throws GitAPIException, IOException {
+    String fileName = "project1/file-in-first-commit.xoo";
+    createAndCommitFile(fileName);
+
+    git.branchCreate().setName("b1").call();
+    git.checkout().setName("b1").call();
+
+    // this line is committed
+    addLineToFile(fileName, 3);
+    commit(fileName);
+
+    // this line is not committed
+    addLineToFile(fileName, 1);
+
+    Path filePath = worktree.resolve(fileName);
+    Map<Path, Set<Integer>> changedLines = newScmProvider().branchChangedLines("master",
+      worktree.resolve("project1"), Collections.singleton(filePath));
+
+    // both lines appear correctly
+    assertThat(changedLines).containsExactly(entry(filePath, new HashSet<>(Arrays.asList(1, 4))));
+  }
+
+  @Test
   public void branchChangedFiles_when_git_work_tree_is_above_project_basedir() throws IOException, GitAPIException {
     git.branchCreate().setName("b1").call();
     git.checkout().setName("b1").call();
@@ -454,6 +477,7 @@ public class GitScmProviderTest {
 
   private void createAndCommitFile(String relativePath, String content) throws IOException, GitAPIException {
     Path newFile = worktree.resolve(relativePath);
+    Files.createDirectories(newFile.getParent());
     Files.write(newFile, content.getBytes(), StandardOpenOption.CREATE);
     commit(relativePath);
   }
