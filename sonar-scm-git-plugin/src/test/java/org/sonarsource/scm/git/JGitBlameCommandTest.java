@@ -1,6 +1,6 @@
 /*
  * SonarQube :: Plugins :: SCM :: Git
- * Copyright (C) 2014-2018 SonarSource SA
+ * Copyright (C) 2014-2019 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
@@ -48,9 +48,9 @@ import org.sonar.api.utils.DateUtils;
 import org.sonar.api.utils.MessageException;
 import org.sonar.api.utils.System2;
 import org.sonar.api.utils.log.LogTester;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import static java.lang.String.format;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
