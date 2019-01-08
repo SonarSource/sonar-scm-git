@@ -37,6 +37,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.RefDatabase;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
@@ -53,8 +54,8 @@ import org.sonar.api.utils.MessageException;
 import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.MapEntry.entry;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -318,12 +319,18 @@ public class GitScmProviderTest {
   }
 
   @Test
-  public void branchChangedFiles_should_return_null_on_io_errors_of_repo_exactref() {
+  public void branchChangedFiles_should_return_null_if_repo_exactref_is_null() throws IOException {
+    Repository repository = mock(Repository.class);
+    RefDatabase refDatabase = mock(RefDatabase.class);
+    when(repository.getRefDatabase()).thenReturn(refDatabase);
+    when(refDatabase.getRef("branch")).thenReturn(null);
+
     GitScmProvider provider = new GitScmProvider(mockCommand()) {
       @Override
-      Repository buildRepo(Path basedir) {
-        return mock(Repository.class);
+      Repository buildRepo(Path basedir) throws IOException {
+        return repository;
       }
+
     };
     assertThat(provider.branchChangedFiles("branch", worktree)).isNull();
   }
