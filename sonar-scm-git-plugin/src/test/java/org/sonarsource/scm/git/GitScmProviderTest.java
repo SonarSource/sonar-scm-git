@@ -1,6 +1,6 @@
 /*
  * SonarQube :: Plugins :: SCM :: Git
- * Copyright (C) 2014-2018 SonarSource SA
+ * Copyright (C) 2014-2019 SonarSource SA
  * mailto:info AT sonarsource DOT com
  *
  * This program is free software; you can redistribute it and/or
@@ -392,7 +392,7 @@ public class GitScmProviderTest {
     };
     assertThat(provider.branchChangedLines("master", worktree,
       ImmutableSet.of(worktree.resolve("foo"), worktree.resolve("bar"))))
-      .isEqualTo(ImmutableMap.of(worktree.resolve("foo"), emptySet()));
+        .isEqualTo(ImmutableMap.of(worktree.resolve("foo"), emptySet()));
     verify(diffCommand, times(2)).call();
   }
 
