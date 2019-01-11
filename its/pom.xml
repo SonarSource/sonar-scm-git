@@ -21,7 +21,7 @@
     <dependency>
       <groupId>org.sonarsource.orchestrator</groupId>
       <artifactId>sonar-orchestrator</artifactId>
-      <version>3.14.0.887</version>
+      <version>3.22.0.1791</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -33,7 +33,7 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>2.2.0</version>
+      <version>3.11.1</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

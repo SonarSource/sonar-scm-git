@@ -19,15 +19,15 @@
  */
 package org.sonarsource.scm.git.its;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Throwables;
 import com.sonar.orchestrator.Orchestrator;
 import com.sonar.orchestrator.build.BuildResult;
 import com.sonar.orchestrator.build.MavenBuild;
 import com.sonar.orchestrator.locator.FileLocation;
+import com.sonar.orchestrator.locator.MavenLocation;
 import com.sonar.orchestrator.util.ZipUtils;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -58,8 +58,7 @@ public class GitTest {
   public static Orchestrator orchestrator = Orchestrator.builderEnv()
     .setSonarVersion(getSonarVersion())
     .addPlugin(FileLocation.byWildcardMavenFilename(new File("../sonar-scm-git-plugin/target"), "sonar-scm-git-plugin-*.jar"))
-    .setOrchestratorProperty("javaVersion", "LATEST_RELEASE")
-    .addPlugin("java")
+    .addPlugin(MavenLocation.of("org.sonarsource.java", "sonar-java-plugin", "LATEST_RELEASE"))
     .build();
 
   @Rule
@@ -95,16 +94,16 @@ public class GitTest {
     unzip("dummy-git.zip");
 
     // Edit file
-    FileUtils.write(new File(project("dummy-git"), "src/main/java/org/dummy/Dummy.java"), "\n", Charsets.UTF_8, true);
+    FileUtils.write(new File(project("dummy-git"), "src/main/java/org/dummy/Dummy.java"), "\n", StandardCharsets.UTF_8, true);
     // New file
-    FileUtils.write(new File(project("dummy-git"), "src/main/java/org/dummy/Dummy2.java"), "package org.dummy;\npublic class Dummy2 {}", Charsets.UTF_8, false);
+    FileUtils.write(new File(project("dummy-git"), "src/main/java/org/dummy/Dummy2.java"), "package org.dummy;\npublic class Dummy2 {}", StandardCharsets.UTF_8, false);
 
     BuildResult result = runSonar("dummy-git");
     assertThat(result.getLogs()).contains("Missing blame information for the following files:");
     assertThat(result.getLogs()).contains("src/main/java/org/dummy/Dummy.java");
     assertThat(result.getLogs()).contains("src/main/java/org/dummy/Dummy2.java");
 
-    if (orchestrator.getServer().version().isGreaterThanOrEquals("7.1")) {
+    if (orchestrator.getServer().version().isGreaterThanOrEquals(7, 1)) {
       assertThat(getScmData("dummy-git:dummy:src/main/java/org/dummy/Dummy.java")).hasSize(31);
       assertThat(getScmData("dummy-git:dummy:src/main/java/org/dummy/Dummy2.java")).hasSize(2);
     } else {
@@ -119,7 +118,7 @@ public class GitTest {
       FileUtils.forceMkdir(PROJECTS_DIR);
       ZipUtils.unzip(new File(SOURCES_DIR, zipName), PROJECTS_DIR);
     } catch (IOException e) {
-      throw Throwables.propagate(e);
+      throw new IllegalStateException(e);
     }
   }
 
