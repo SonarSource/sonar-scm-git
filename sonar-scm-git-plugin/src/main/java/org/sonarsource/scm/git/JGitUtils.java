@@ -19,30 +19,24 @@
  */
 package org.sonarsource.scm.git;
 
-import org.junit.Test;
-import org.sonar.api.Plugin;
-import org.sonar.api.SonarQubeSide;
-import org.sonar.api.SonarRuntime;
-import org.sonar.api.internal.SonarRuntimeImpl;
-import org.sonar.api.utils.Version;
+import java.io.IOException;
+import java.nio.file.Path;
+import org.eclipse.jgit.lib.Repository;
 
-import static org.assertj.core.api.Assertions.assertThat;
+public class JGitUtils {
 
-public class GitPluginTest {
-
-  @Test
-  public void getExtensions_before_7_6() {
-    SonarRuntime runtime = SonarRuntimeImpl.forSonarQube(Version.create(5, 6), SonarQubeSide.SCANNER);
-    Plugin.Context context = new Plugin.Context(runtime);
-    new GitPlugin().define(context);
-    assertThat(context.getExtensions()).hasSize(3);
+  private JGitUtils() {
   }
 
-  @Test
-  public void getExtensions_after_7_6() {
-    SonarRuntime runtime = SonarRuntimeImpl.forSonarQube(Version.create(7, 6), SonarQubeSide.SCANNER);
-    Plugin.Context context = new Plugin.Context(runtime);
-    new GitPlugin().define(context);
-    assertThat(context.getExtensions()).hasSize(4);
+  public static Repository buildRepository(Path basedir) {
+    try {
+      Repository repo = GitScmProvider.getVerifiedRepositoryBuilder(basedir).build();
+      // SONARSCGIT-2 Force initialization of shallow commits to avoid later concurrent modification issue
+      repo.getObjectDatabase().newReader().getShallowCommits();
+      return repo;
+    } catch (IOException e) {
+      throw new IllegalStateException("Unable to open Git repository", e);
+    }
   }
+
 }

@@ -61,9 +61,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-import static org.sonarsource.scm.git.JGitBlameCommandTest.javaUnzip;
+import static org.sonarsource.scm.git.Utils.javaUnzip;
 
-public class GitScmProviderTest {
+public class GitScmProviderBefore76Test {
 
   // Sample content for unified diffs
   // http://www.gnu.org/software/diffutils/manual/html_node/Example-Unified.html#Example-Unified
@@ -123,8 +123,8 @@ public class GitScmProviderTest {
 
   @Test
   public void returnImplem() {
-    JGitBlameCommand jblameCommand = new JGitBlameCommand(new PathResolver(), mock(AnalysisWarningsWrapper.class));
-    GitScmProvider gitScmProvider = new GitScmProvider(jblameCommand, analysisWarnings);
+    JGitBlameCommand jblameCommand = new JGitBlameCommand(new PathResolver(), analysisWarnings);
+    GitScmProviderBefore76 gitScmProvider = new GitScmProviderBefore76(jblameCommand, analysisWarnings);
 
     assertThat(gitScmProvider.blameCommand()).isEqualTo(jblameCommand);
   }
@@ -312,7 +312,7 @@ public class GitScmProviderTest {
 
   @Test
   public void branchChangedFiles_should_return_null_on_io_errors_of_repo_builder() {
-    GitScmProvider provider = new GitScmProvider(mockCommand(), analysisWarnings) {
+    GitScmProviderBefore76 provider = new GitScmProviderBefore76(mockCommand(), analysisWarnings) {
       @Override
       Repository buildRepo(Path basedir) throws IOException {
         throw new IOException();
@@ -329,7 +329,7 @@ public class GitScmProviderTest {
     when(repository.getRefDatabase()).thenReturn(refDatabase);
     when(refDatabase.getRef("branch")).thenReturn(null);
 
-    GitScmProvider provider = new GitScmProvider(mockCommand(), analysisWarnings) {
+    GitScmProviderBefore76 provider = new GitScmProviderBefore76(mockCommand(), analysisWarnings) {
       @Override
       Repository buildRepo(Path basedir) throws IOException {
         return repository;
@@ -347,7 +347,7 @@ public class GitScmProviderTest {
     RevWalk walk = mock(RevWalk.class);
     when(walk.parseCommit(any())).thenThrow(new IOException());
 
-    GitScmProvider provider = new GitScmProvider(mockCommand(), analysisWarnings) {
+    GitScmProviderBefore76 provider = new GitScmProviderBefore76(mockCommand(), analysisWarnings) {
       @Override
       RevWalk newRevWalk(Repository repo) {
         return walk;
@@ -367,7 +367,7 @@ public class GitScmProviderTest {
     Git git = mock(Git.class);
     when(git.diff()).thenReturn(diffCommand);
 
-    GitScmProvider provider = new GitScmProvider(mockCommand(), analysisWarnings) {
+    GitScmProviderBefore76 provider = new GitScmProviderBefore76(mockCommand(), analysisWarnings) {
       @Override
       Git newGit(Repository repo) {
         return git;
@@ -398,7 +398,7 @@ public class GitScmProviderTest {
     Git git = mock(Git.class);
     when(git.diff()).thenReturn(diffCommand);
 
-    GitScmProvider provider = new GitScmProvider(mockCommand(), analysisWarnings) {
+    GitScmProviderBefore76 provider = new GitScmProviderBefore76(mockCommand(), analysisWarnings) {
       @Override
       Git newGit(Repository repo) {
         return git;
@@ -412,7 +412,7 @@ public class GitScmProviderTest {
 
   @Test
   public void branchChangedLines_returns_null_on_io_errors_of_repo_builder() {
-    GitScmProvider provider = new GitScmProvider(mockCommand(), analysisWarnings) {
+    GitScmProviderBefore76 provider = new GitScmProviderBefore76(mockCommand(), analysisWarnings) {
       @Override
       Repository buildRepo(Path basedir) throws IOException {
         throw new IOException();
@@ -426,8 +426,8 @@ public class GitScmProviderTest {
     assertThat(newGitScmProvider().relativePathFromScmRoot(worktree)).isEqualTo(Paths.get(""));
   }
 
-  private GitScmProvider newGitScmProvider() {
-    return new GitScmProvider(mock(JGitBlameCommand.class), analysisWarnings);
+  private GitScmProviderBefore76 newGitScmProvider() {
+    return new GitScmProviderBefore76(mock(JGitBlameCommand.class), analysisWarnings);
   }
 
   @Test
@@ -452,7 +452,7 @@ public class GitScmProviderTest {
     Path projectDir = worktree.resolve("project");
     Files.createDirectory(projectDir);
 
-    GitScmProvider provider = newGitScmProvider();
+    GitScmProviderBefore76 provider = newGitScmProvider();
 
     String sha1before = provider.revisionId(projectDir);
     assertThat(sha1before).hasSize(40);
@@ -519,7 +519,7 @@ public class GitScmProviderTest {
     git.commit().setAuthor("joe", "joe@example.com").setMessage(relativePath).call();
   }
 
-  private GitScmProvider newScmProvider() {
-    return new GitScmProvider(mockCommand(), analysisWarnings);
+  private GitScmProviderBefore76 newScmProvider() {
+    return new GitScmProviderBefore76(mockCommand(), analysisWarnings);
   }
 }

@@ -19,20 +19,36 @@
  */
 package org.sonarsource.scm.git;
 
-import org.sonar.api.Plugin;
-import org.sonar.api.utils.Version;
+import java.io.IOException;
+import java.nio.file.Path;
+import org.sonar.api.batch.InstantiationStrategy;
+import org.sonar.api.batch.ScannerSide;
+import org.sonar.api.batch.scm.IgnoreCommand;
 
-public final class GitPlugin implements Plugin {
+import static java.util.Objects.requireNonNull;
+
+@ScannerSide
+@InstantiationStrategy(InstantiationStrategy.PER_BATCH)
+public class GitIgnoreCommand implements IgnoreCommand {
+
+  private IncludedFilesRepository includedFilesRepository;
+
   @Override
-  public void define(Context context) {
-    context.addExtensions(
-      JGitBlameCommand.class,
-      AnalysisWarningsSupport.getAnalysisWarningsWrapper(context.getRuntime()));
-    if (context.getRuntime().getApiVersion().isGreaterThanOrEqual(Version.create(7, 6))) {
-      context.addExtensions(GitScmProvider.class,
-        GitIgnoreCommand.class);
-    } else {
-      context.addExtension(GitScmProviderBefore76.class);
+  public void init(Path baseDir) {
+    try {
+      this.includedFilesRepository = new IncludedFilesRepository(baseDir);
+    } catch (IOException e) {
+      throw new IllegalStateException("I/O error while indexing ignored files.", e);
     }
+  }
+
+  @Override
+  public boolean isIgnored(Path absolutePath) {
+    return !requireNonNull(includedFilesRepository, "Call init first").contains(absolutePath);
+  }
+
+  @Override
+  public void clean() {
+    this.includedFilesRepository = null;
   }
 }

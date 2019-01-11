@@ -20,7 +20,6 @@
 package org.sonarsource.scm.git;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +53,7 @@ public class JGitBlameCommand extends BlameCommand {
   @Override
   public void blame(BlameInput input, BlameOutput output) {
     File basedir = input.fileSystem().baseDir();
-    try (Repository repo = buildRepository(basedir); Git git = Git.wrap(repo)) {
+    try (Repository repo = JGitUtils.buildRepository(basedir.toPath()); Git git = Git.wrap(repo)) {
       File gitBaseDir = repo.getWorkTree();
       if (Files.isRegularFile(gitBaseDir.toPath().resolve(".git/shallow"))) {
         LOG.warn("Shallow clone detected, no blame information will be provided. "
@@ -73,17 +72,6 @@ public class JGitBlameCommand extends BlameCommand {
       } catch (InterruptedException e) {
         LOG.info("Git blame interrupted");
       }
-    }
-  }
-
-  private static Repository buildRepository(File basedir) {
-    try {
-      Repository repo = GitScmProvider.getVerifiedRepositoryBuilder(basedir.toPath()).build();
-      // SONARSCGIT-2 Force initialization of shallow commits to avoid later concurrent modification issue
-      repo.getObjectDatabase().newReader().getShallowCommits();
-      return repo;
-    } catch (IOException e) {
-      throw new IllegalStateException("Unable to open Git repository", e);
     }
   }
 
