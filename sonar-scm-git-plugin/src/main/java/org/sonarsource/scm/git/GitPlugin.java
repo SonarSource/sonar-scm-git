@@ -28,11 +28,11 @@ public final class GitPlugin implements Plugin {
     context.addExtensions(
       JGitBlameCommand.class,
       AnalysisWarningsSupport.getAnalysisWarningsWrapper(context.getRuntime()));
-    if (context.getRuntime().getApiVersion().isGreaterThanOrEqual(Version.create(7, 6))) {
+    if (context.getRuntime().getApiVersion().isGreaterThanOrEqual(Version.create(7, 7))) {
       context.addExtensions(GitScmProvider.class,
         GitIgnoreCommand.class);
     } else {
-      context.addExtension(GitScmProviderBefore76.class);
+      context.addExtension(GitScmProviderBefore77.class);
     }
   }
 }

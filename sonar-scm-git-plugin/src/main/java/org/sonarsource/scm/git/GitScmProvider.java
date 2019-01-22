@@ -21,7 +21,7 @@ package org.sonarsource.scm.git;
 
 import java.util.Objects;
 
-public class GitScmProvider extends GitScmProviderBefore76 {
+public class GitScmProvider extends GitScmProviderBefore77 {
 
   private final GitIgnoreCommand gitIgnoreCommand;
 

@@ -48,14 +48,14 @@ import org.sonar.api.utils.MessageException;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 
-public class GitScmProviderBefore76 extends ScmProvider {
+public class GitScmProviderBefore77 extends ScmProvider {
 
-  private static final Logger LOG = Loggers.get(GitScmProviderBefore76.class);
+  private static final Logger LOG = Loggers.get(GitScmProviderBefore77.class);
 
   private final JGitBlameCommand jgitBlameCommand;
   private final AnalysisWarningsWrapper analysisWarnings;
 
-  public GitScmProviderBefore76(JGitBlameCommand jgitBlameCommand, AnalysisWarningsWrapper analysisWarnings) {
+  public GitScmProviderBefore77(JGitBlameCommand jgitBlameCommand, AnalysisWarningsWrapper analysisWarnings) {
     this.jgitBlameCommand = jgitBlameCommand;
     this.analysisWarnings = analysisWarnings;
   }
