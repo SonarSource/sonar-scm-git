@@ -21,14 +21,12 @@ package org.sonarsource.scm.git;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import org.sonar.api.batch.InstantiationStrategy;
-import org.sonar.api.batch.ScannerSide;
 import org.sonar.api.batch.scm.IgnoreCommand;
+import org.sonar.api.scanner.ScannerSide;
 
 import static java.util.Objects.requireNonNull;
 
 @ScannerSide
-@InstantiationStrategy(InstantiationStrategy.PER_BATCH)
 public class GitIgnoreCommand implements IgnoreCommand {
 
   private IncludedFilesRepository includedFilesRepository;
