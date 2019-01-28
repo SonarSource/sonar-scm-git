@@ -25,8 +25,11 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,6 +49,7 @@ import org.sonar.api.utils.MessageException;
 import org.sonar.api.utils.System2;
 import org.sonar.api.utils.log.LogTester;
 
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Matchers.startsWith;
@@ -54,7 +58,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-import static org.sonarsource.scm.git.Utils.javaUnzip;
 
 public class JGitBlameCommandTest {
 
@@ -308,4 +311,27 @@ public class JGitBlameCommandTest {
     return new JGitBlameCommand(new PathResolver(), mock(AnalysisWarningsWrapper.class));
   }
 
+  static void javaUnzip(File zip, File toDir) {
+    try {
+      try (ZipFile zipFile = new ZipFile(zip)) {
+        Enumeration<? extends ZipEntry> entries = zipFile.entries();
+        while (entries.hasMoreElements()) {
+          ZipEntry entry = entries.nextElement();
+          File to = new File(toDir, entry.getName());
+          if (entry.isDirectory()) {
+            FileUtils.forceMkdir(to);
+          } else {
+            File parent = to.getParentFile();
+            if (parent != null) {
+              FileUtils.forceMkdir(parent);
+            }
+
+            Files.copy(zipFile.getInputStream(entry), to.toPath());
+          }
+        }
+      }
+    } catch (Exception e) {
+      throw new IllegalStateException(format("Fail to unzip %s to %s", zip, toDir), e);
+    }
+  }
 }

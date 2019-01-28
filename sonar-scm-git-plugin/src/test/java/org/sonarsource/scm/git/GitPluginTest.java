@@ -31,18 +31,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class GitPluginTest {
 
   @Test
-  public void getExtensions_before_7_7() {
+  public void getExtensions() {
     SonarRuntime runtime = SonarRuntimeImpl.forSonarQube(Version.create(5, 6), SonarQubeSide.SCANNER);
     Plugin.Context context = new Plugin.Context(runtime);
     new GitPlugin().define(context);
     assertThat(context.getExtensions()).hasSize(3);
   }
 
-  @Test
-  public void getExtensions_after_7_7() {
-    SonarRuntime runtime = SonarRuntimeImpl.forSonarQube(Version.create(7, 7), SonarQubeSide.SCANNER);
-    Plugin.Context context = new Plugin.Context(runtime);
-    new GitPlugin().define(context);
-    assertThat(context.getExtensions()).hasSize(4);
-  }
 }
