@@ -19,30 +19,34 @@
  */
 package org.sonarsource.scm.git;
 
-import org.junit.Test;
-import org.sonar.api.Plugin;
-import org.sonar.api.SonarQubeSide;
-import org.sonar.api.SonarRuntime;
-import org.sonar.api.internal.SonarRuntimeImpl;
-import org.sonar.api.utils.Version;
+import java.io.IOException;
+import java.nio.file.Path;
+import org.sonar.api.batch.scm.IgnoreCommand;
+import org.sonar.api.scanner.ScannerSide;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static java.util.Objects.requireNonNull;
 
-public class GitPluginTest {
+@ScannerSide
+public class GitIgnoreCommand implements IgnoreCommand {
 
-  @Test
-  public void getExtensions_before_7_7() {
-    SonarRuntime runtime = SonarRuntimeImpl.forSonarQube(Version.create(5, 6), SonarQubeSide.SCANNER);
-    Plugin.Context context = new Plugin.Context(runtime);
-    new GitPlugin().define(context);
-    assertThat(context.getExtensions()).hasSize(3);
+  private IncludedFilesRepository includedFilesRepository;
+
+  @Override
+  public void init(Path baseDir) {
+    try {
+      this.includedFilesRepository = new IncludedFilesRepository(baseDir);
+    } catch (IOException e) {
+      throw new IllegalStateException("I/O error while indexing ignored files.", e);
+    }
   }
 
-  @Test
-  public void getExtensions_after_7_7() {
-    SonarRuntime runtime = SonarRuntimeImpl.forSonarQube(Version.create(7, 7), SonarQubeSide.SCANNER);
-    Plugin.Context context = new Plugin.Context(runtime);
-    new GitPlugin().define(context);
-    assertThat(context.getExtensions()).hasSize(4);
+  @Override
+  public boolean isIgnored(Path absolutePath) {
+    return !requireNonNull(includedFilesRepository, "Call init first").contains(absolutePath);
+  }
+
+  @Override
+  public void clean() {
+    this.includedFilesRepository = null;
   }
 }
