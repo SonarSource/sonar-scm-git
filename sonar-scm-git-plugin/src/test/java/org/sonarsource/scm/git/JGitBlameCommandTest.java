@@ -25,8 +25,11 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,6 +49,7 @@ import org.sonar.api.utils.MessageException;
 import org.sonar.api.utils.System2;
 import org.sonar.api.utils.log.LogTester;
 
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assume.assumeTrue;
 import static org.mockito.Matchers.startsWith;
@@ -54,7 +58,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
-import static org.sonarsource.scm.git.Utils.javaUnzip;
 
 public class JGitBlameCommandTest {
 
@@ -82,8 +85,8 @@ public class JGitBlameCommandTest {
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
     when(input.fileSystem()).thenReturn(fs);
     DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA)
-      .setModuleBaseDir(baseDir.toPath())
-      .build();
+            .setModuleBaseDir(baseDir.toPath())
+            .build();
     fs.add(inputFile);
 
     BlameOutput blameResult = mock(BlameOutput.class);
@@ -150,8 +153,8 @@ public class JGitBlameCommandTest {
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
     when(input.fileSystem()).thenReturn(fs);
     DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA)
-      .setModuleBaseDir(baseDir.toPath())
-      .build();
+            .setModuleBaseDir(baseDir.toPath())
+            .build();
     fs.add(inputFile);
 
     BlameOutput blameResult = mock(BlameOutput.class);
@@ -162,33 +165,33 @@ public class JGitBlameCommandTest {
     String revision = "6b3aab35a3ea32c1636fee56f996e677653c48ea";
     String author = "david@gageot.net";
     verify(blameResult).blameResult(inputFile,
-      Arrays.asList(
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author),
-        new BlameLine().revision(revision).date(revisionDate).author(author)));
+            Arrays.asList(
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author),
+                    new BlameLine().revision(revision).date(revisionDate).author(author)));
   }
 
   @Test
@@ -254,12 +257,12 @@ public class JGitBlameCommandTest {
     String relativePath = DUMMY_JAVA;
     String relativePath2 = "src/main/java/org/dummy/Dummy2.java";
     DefaultInputFile inputFile = new TestInputFileBuilder("foo", relativePath)
-      .setModuleBaseDir(baseDir.toPath())
-      .build();
+            .setModuleBaseDir(baseDir.toPath())
+            .build();
     fs.add(inputFile);
     DefaultInputFile inputFile2 = new TestInputFileBuilder("foo", relativePath2)
-      .setModuleBaseDir(baseDir.toPath())
-      .build();
+            .setModuleBaseDir(baseDir.toPath())
+            .build();
     fs.add(inputFile2);
 
     // Create symlink
@@ -292,7 +295,7 @@ public class JGitBlameCommandTest {
     jGitBlameCommand.blame(input, output);
 
     assertThat(logTester.logs()).first()
-      .matches(s -> s.contains("Shallow clone detected, no blame information will be provided."));
+            .matches(s -> s.contains("Shallow clone detected, no blame information will be provided."));
     verifyZeroInteractions(output);
 
     verify(analysisWarnings).addUnique(startsWith("Shallow clone detected"));
@@ -304,8 +307,60 @@ public class JGitBlameCommandTest {
     verifyNoMoreInteractions(analysisWarnings);
   }
 
+  @Test
+  public void testBlameSubmodules() throws IOException {
+    File projectDir = temp.newFolder();
+    javaUnzip(new File("test-repos/submodule-git.zip"), projectDir);
+
+    JGitBlameCommand jGitBlameCommand = newJGitBlameCommand();
+
+    File baseDir = new File(projectDir, "submodule-git");
+    DefaultFileSystem fs = new DefaultFileSystem(baseDir);
+    when(input.fileSystem()).thenReturn(fs);
+    DefaultInputFile inputFile = new TestInputFileBuilder("foo", "lib/file")
+            .setModuleBaseDir(baseDir.toPath())
+            .build();
+    fs.add(inputFile);
+
+    BlameOutput blameResult = mock(BlameOutput.class);
+    when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile));
+    jGitBlameCommand.blame(input, blameResult);
+
+    String author = "email@example.com";
+    Date revisionDate = DateUtils.parseDateTime("2019-02-20T15:41:11+0000");
+    String revision = "42de86a491cad6540f3edbb668fc2bc6383f10d8";
+
+    List<BlameLine> expectedBlame = new LinkedList<>();
+    expectedBlame.add(new BlameLine().revision(revision).date(revisionDate).author(author));
+
+    verify(blameResult).blameResult(inputFile, expectedBlame);
+  }
+
   private JGitBlameCommand newJGitBlameCommand() {
     return new JGitBlameCommand(new PathResolver(), mock(AnalysisWarningsWrapper.class));
   }
 
+  static void javaUnzip(File zip, File toDir) {
+    try {
+      try (ZipFile zipFile = new ZipFile(zip)) {
+        Enumeration<? extends ZipEntry> entries = zipFile.entries();
+        while (entries.hasMoreElements()) {
+          ZipEntry entry = entries.nextElement();
+          File to = new File(toDir, entry.getName());
+          if (entry.isDirectory()) {
+            FileUtils.forceMkdir(to);
+          } else {
+            File parent = to.getParentFile();
+            if (parent != null) {
+              FileUtils.forceMkdir(parent);
+            }
+
+            Files.copy(zipFile.getInputStream(entry), to.toPath());
+          }
+        }
+      }
+    } catch (Exception e) {
+      throw new IllegalStateException(format("Fail to unzip %s to %s", zip, toDir), e);
+    }
+  }
 }
