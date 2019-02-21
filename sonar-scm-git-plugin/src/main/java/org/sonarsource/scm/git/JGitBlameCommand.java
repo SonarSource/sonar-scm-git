@@ -92,10 +92,10 @@ public class JGitBlameCommand extends BlameCommand {
       }
       if (Files.isRegularFile(gitBaseDir.toPath().resolve(".git/shallow"))) {
         LOG.warn("Shallow clone detected, no blame information will be provided. "
-                + "You can convert to non-shallow with 'git fetch --unshallow'.");
+          + "You can convert to non-shallow with 'git fetch --unshallow'.");
         analysisWarnings.addUnique("Shallow clone detected during the analysis. "
-                + "Some files will miss SCM information. This will affect features like auto-assignment of issues. "
-                + "Please configure your build to disable shallow clone.");
+          + "Some files will miss SCM information. This will affect features like auto-assignment of issues. "
+          + "Please configure your build to disable shallow clone.");
         return;
       }
       Stream<InputFile> stream = StreamSupport.stream(input.filesToBlame().spliterator(), true);
@@ -127,9 +127,9 @@ public class JGitBlameCommand extends BlameCommand {
     BlameResult blameResult;
     try {
       blameResult = git.blame()
-              // Equivalent to -w command line option
-              .setTextComparator(RawTextComparator.WS_IGNORE_ALL)
-              .setFilePath(filename).call();
+        // Equivalent to -w command line option
+        .setTextComparator(RawTextComparator.WS_IGNORE_ALL)
+        .setFilePath(filename).call();
     } catch (Exception e) {
       throw new IllegalStateException("Unable to blame file " + inputFile.relativePath(), e);
     }
@@ -166,13 +166,13 @@ public class JGitBlameCommand extends BlameCommand {
     for (int i = 0; i < blameResult.getResultContents().size(); i++) {
       if (blameResult.getSourceAuthor(i) == null || blameResult.getSourceCommit(i) == null) {
         LOG.debug("Unable to blame file {}. No blame info at line {}. Is file committed? [Author: {} Source commit: {}]", inputFile.relativePath(), i + 1,
-                blameResult.getSourceAuthor(i), blameResult.getSourceCommit(i));
+          blameResult.getSourceAuthor(i), blameResult.getSourceCommit(i));
         return;
       }
       lines.add(new BlameLine()
-              .date(blameResult.getSourceCommitter(i).getWhen())
-              .revision(blameResult.getSourceCommit(i).getName())
-              .author(blameResult.getSourceAuthor(i).getEmailAddress()));
+        .date(blameResult.getSourceCommitter(i).getWhen())
+        .revision(blameResult.getSourceCommit(i).getName())
+        .author(blameResult.getSourceAuthor(i).getEmailAddress()));
     }
     if (lines.size() == inputFile.lines() - 1) {
       // SONARPLUGINS-3097 Git do not report blame on last empty line

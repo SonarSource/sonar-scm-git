@@ -85,8 +85,8 @@ public class JGitBlameCommandTest {
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
     when(input.fileSystem()).thenReturn(fs);
     DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA)
-            .setModuleBaseDir(baseDir.toPath())
-            .build();
+      .setModuleBaseDir(baseDir.toPath())
+      .build();
     fs.add(inputFile);
 
     BlameOutput blameResult = mock(BlameOutput.class);
@@ -153,8 +153,8 @@ public class JGitBlameCommandTest {
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
     when(input.fileSystem()).thenReturn(fs);
     DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA)
-            .setModuleBaseDir(baseDir.toPath())
-            .build();
+      .setModuleBaseDir(baseDir.toPath())
+      .build();
     fs.add(inputFile);
 
     BlameOutput blameResult = mock(BlameOutput.class);
@@ -165,33 +165,33 @@ public class JGitBlameCommandTest {
     String revision = "6b3aab35a3ea32c1636fee56f996e677653c48ea";
     String author = "david@gageot.net";
     verify(blameResult).blameResult(inputFile,
-            Arrays.asList(
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author),
-                    new BlameLine().revision(revision).date(revisionDate).author(author)));
+      Arrays.asList(
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author),
+        new BlameLine().revision(revision).date(revisionDate).author(author)));
   }
 
   @Test
@@ -257,12 +257,12 @@ public class JGitBlameCommandTest {
     String relativePath = DUMMY_JAVA;
     String relativePath2 = "src/main/java/org/dummy/Dummy2.java";
     DefaultInputFile inputFile = new TestInputFileBuilder("foo", relativePath)
-            .setModuleBaseDir(baseDir.toPath())
-            .build();
+      .setModuleBaseDir(baseDir.toPath())
+      .build();
     fs.add(inputFile);
     DefaultInputFile inputFile2 = new TestInputFileBuilder("foo", relativePath2)
-            .setModuleBaseDir(baseDir.toPath())
-            .build();
+      .setModuleBaseDir(baseDir.toPath())
+      .build();
     fs.add(inputFile2);
 
     // Create symlink
@@ -295,7 +295,7 @@ public class JGitBlameCommandTest {
     jGitBlameCommand.blame(input, output);
 
     assertThat(logTester.logs()).first()
-            .matches(s -> s.contains("Shallow clone detected, no blame information will be provided."));
+      .matches(s -> s.contains("Shallow clone detected, no blame information will be provided."));
     verifyZeroInteractions(output);
 
     verify(analysisWarnings).addUnique(startsWith("Shallow clone detected"));
@@ -318,8 +318,8 @@ public class JGitBlameCommandTest {
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
     when(input.fileSystem()).thenReturn(fs);
     DefaultInputFile inputFile = new TestInputFileBuilder("foo", "lib/file")
-            .setModuleBaseDir(baseDir.toPath())
-            .build();
+      .setModuleBaseDir(baseDir.toPath())
+      .build();
     fs.add(inputFile);
 
     BlameOutput blameResult = mock(BlameOutput.class);
