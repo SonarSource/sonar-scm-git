@@ -32,6 +32,7 @@ import javax.annotation.CheckForNull;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -170,7 +171,12 @@ public class GitScmProviderBefore77 extends ScmProvider {
   public String revisionId(Path path) {
     RepositoryBuilder builder = getVerifiedRepositoryBuilder(path);
     try {
-      return getHead(builder.build()).getObjectId().getName();
+      ObjectId obj = getHead(builder.build()).getObjectId();
+      if (obj == null) {
+        // can happen on fresh, empty repos
+        return null;
+      }
+      return obj.getName();
     } catch (IOException e) {
       throw new IllegalStateException("I/O error while getting revision ID for path: " + path, e);
     }

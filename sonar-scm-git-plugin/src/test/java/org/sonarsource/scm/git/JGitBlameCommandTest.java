@@ -210,7 +210,7 @@ public class JGitBlameCommandTest {
 
     BlameOutput blameResult = mock(BlameOutput.class);
 
-    when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile));
+    when(input.filesToBlame()).thenReturn(Arrays.asList(inputFile));
     jGitBlameCommand.blame(input, blameResult);
   }
 
@@ -236,7 +236,7 @@ public class JGitBlameCommandTest {
 
     BlameOutput blameResult = mock(BlameOutput.class);
 
-    when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile, inputFile2));
+    when(input.filesToBlame()).thenReturn(Arrays.asList(inputFile, inputFile2));
     jGitBlameCommand.blame(input, blameResult);
   }
 
@@ -267,7 +267,7 @@ public class JGitBlameCommandTest {
 
     BlameOutput blameResult = mock(BlameOutput.class);
 
-    when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile, inputFile2));
+    when(input.filesToBlame()).thenReturn(Arrays.asList(inputFile, inputFile2));
     jGitBlameCommand.blame(input, blameResult);
   }
 
