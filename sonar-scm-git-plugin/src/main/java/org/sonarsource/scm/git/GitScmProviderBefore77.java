@@ -31,7 +31,10 @@ import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.diff.DiffAlgorithm;
 import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.lib.Config;
+import org.eclipse.jgit.lib.ConfigConstants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
@@ -86,6 +89,12 @@ public class GitScmProviderBefore77 extends ScmProvider {
         return null;
       }
 
+      if (!isDiffAlgoValid(repo.getConfig())) {
+        LOG.warn("The diff algorithm configured in git is not supported. "
+          + "No information regarding changes in the branch will be collected, which can lead to unexpected results.");
+        return null;
+      }
+
       try (Git git = newGit(repo)) {
         return git.diff().setShowNameAndStatusOnly(true)
           .setOldTree(prepareTreeParser(repo, targetRef))
@@ -107,6 +116,10 @@ public class GitScmProviderBefore77 extends ScmProvider {
     try (Repository repo = buildRepo(projectBaseDir)) {
       Ref targetRef = resolveTargetRef(targetBranchName, repo);
       if (targetRef == null) {
+        return null;
+      }
+
+      if (!isDiffAlgoValid(repo.getConfig())) {
         return null;
       }
 
@@ -179,6 +192,18 @@ public class GitScmProviderBefore77 extends ScmProvider {
       return obj.getName();
     } catch (IOException e) {
       throw new IllegalStateException("I/O error while getting revision ID for path: " + path, e);
+    }
+  }
+
+  private boolean isDiffAlgoValid(Config cfg) {
+    try {
+      DiffAlgorithm.getAlgorithm(cfg.getEnum(
+        ConfigConstants.CONFIG_DIFF_SECTION, null,
+        ConfigConstants.CONFIG_KEY_ALGORITHM,
+        DiffAlgorithm.SupportedAlgorithm.HISTOGRAM));
+      return true;
+    } catch (IllegalArgumentException e) {
+      return false;
     }
   }
 
