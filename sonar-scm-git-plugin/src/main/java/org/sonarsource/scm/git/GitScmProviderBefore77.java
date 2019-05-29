@@ -95,11 +95,15 @@ public class GitScmProviderBefore77 extends ScmProvider {
         return null;
       }
 
+      // we compare a commit with HEAD, so no point ignoring line endings (it will be whatever is committed)
       try (Git git = newGit(repo)) {
-        return git.diff().setShowNameAndStatusOnly(true)
+        List<DiffEntry> diffEntries = git.diff()
+          .setShowNameAndStatusOnly(true)
           .setOldTree(prepareTreeParser(repo, targetRef))
           .setNewTree(prepareNewTree(repo))
-          .call().stream()
+          .call();
+
+        return diffEntries.stream()
           .filter(diffEntry -> diffEntry.getChangeType() == DiffEntry.ChangeType.ADD || diffEntry.getChangeType() == DiffEntry.ChangeType.MODIFY)
           .map(diffEntry -> repo.getWorkTree().toPath().resolve(diffEntry.getNewPath()))
           .collect(Collectors.toSet());
@@ -120,9 +124,12 @@ public class GitScmProviderBefore77 extends ScmProvider {
       }
 
       if (!isDiffAlgoValid(repo.getConfig())) {
+        // we already print a warning when branchChangedFiles is called
         return null;
       }
 
+      // force ignore different line endings when comparing a commit with the workspace
+      repo.getConfig().setBoolean("core", null, "autocrlf", true);
       Map<Path, Set<Integer>> changedLines = new HashMap<>();
 
       try (Git git = newGit(repo)) {
@@ -137,10 +144,8 @@ public class GitScmProviderBefore77 extends ScmProvider {
               .setPathFilter(PathFilter.create(toGitPath(repoRootDir.relativize(path).toString())))
               .call();
 
-            diffEntries
-              .stream()
-              .filter(diffEntry -> diffEntry.getChangeType() == DiffEntry.ChangeType.ADD
-                || diffEntry.getChangeType() == DiffEntry.ChangeType.MODIFY)
+            diffEntries.stream()
+              .filter(diffEntry -> diffEntry.getChangeType() == DiffEntry.ChangeType.ADD || diffEntry.getChangeType() == DiffEntry.ChangeType.MODIFY)
               .forEach(diffEntry -> changedLines.put(path, computer.changedLines()));
           } catch (Exception e) {
             LOG.warn("Failed to get changed lines from git for file " + path, e);

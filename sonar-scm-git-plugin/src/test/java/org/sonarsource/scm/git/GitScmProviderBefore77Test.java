@@ -295,6 +295,27 @@ public class GitScmProviderBefore77Test {
     assertThat(newScmProvider().branchChangedLines("master", worktree, Collections.singleton(Paths.get("file")))).isNull();
   }
 
+  /**
+   * Unfortunately it looks like JGit doesn't support this setting using .gitattributes.
+   */
+  @Test
+  public void branchChangedLines_should_always_ignore_different_line_endings() throws IOException, GitAPIException {
+    Path filePath = worktree.resolve("file-m1.xoo");
+
+    createAndCommitFile("file-m1.xoo");
+    ObjectId forkPoint = git.getRepository().exactRef("HEAD").getObjectId();
+
+    git.branchCreate().setName("b1").setStartPoint(forkPoint.getName()).call();
+    git.checkout().setName("b1").call();
+
+    String newFileContent = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8).replaceAll("\n", "\r\n");
+    Files.write(filePath, newFileContent.getBytes(StandardCharsets.UTF_8), StandardOpenOption.TRUNCATE_EXISTING);
+    commit("file-m1.xoo");
+
+    assertThat(newScmProvider().branchChangedLines("master", worktree, Collections.singleton(filePath)))
+      .isEmpty();
+  }
+
   @Test
   public void branchChangedFiles_falls_back_to_origin_when_local_branch_does_not_exist() throws IOException, GitAPIException {
     git.branchCreate().setName("b1").call();
