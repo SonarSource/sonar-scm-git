@@ -21,6 +21,7 @@ package org.sonarsource.scm.git;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -167,6 +168,16 @@ public class GitScmProviderBefore77Test {
   }
 
   @Test
+  public void branchChangedFiles_should_not_fail_with_patience_diff_algo() throws IOException {
+    Path gitConfig = worktree.resolve(".git").resolve("config");
+    Files.write(gitConfig, "[diff]\nalgorithm = patience\n".getBytes(StandardCharsets.UTF_8));
+    Repository repo = FileRepositoryBuilder.create(worktree.resolve(".git").toFile());
+    git = new Git(repo);
+
+    assertThat(newScmProvider().branchChangedFiles("master", worktree)).isNull();
+  }
+
+  @Test
   public void branchChangedFiles_from_merged_and_diverged() throws IOException, GitAPIException {
     createAndCommitFile("file-m1.xoo");
     createAndCommitFile("file-m2.xoo");
@@ -272,6 +283,16 @@ public class GitScmProviderBefore77Test {
     createAndCommitFile("project/file-b1");
     assertThat(newScmProvider().branchChangedFiles("master", projectDir))
       .containsOnly(projectDir.resolve("file-b1"));
+  }
+
+  @Test
+  public void branchChangedLines_should_not_fail_with_patience_diff_algo() throws IOException {
+    Path gitConfig = worktree.resolve(".git").resolve("config");
+    Files.write(gitConfig, "[diff]\nalgorithm = patience\n".getBytes(StandardCharsets.UTF_8));
+    Repository repo = FileRepositoryBuilder.create(worktree.resolve(".git").toFile());
+    git = new Git(repo);
+
+    assertThat(newScmProvider().branchChangedLines("master", worktree, Collections.singleton(Paths.get("file")))).isNull();
   }
 
   @Test
