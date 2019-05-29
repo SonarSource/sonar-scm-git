@@ -406,7 +406,7 @@ public class GitScmProviderBefore77Test {
     };
     assertThat(provider.branchChangedLines("master", worktree,
       ImmutableSet.of(worktree.resolve("foo"), worktree.resolve("bar"))))
-        .isEqualTo(ImmutableMap.of(worktree.resolve("foo"), emptySet()));
+      .isEqualTo(ImmutableMap.of(worktree.resolve("foo"), emptySet()));
     verify(diffCommand, times(2)).call();
   }
 
@@ -463,6 +463,22 @@ public class GitScmProviderBefore77Test {
 
     assertThat(sha1after).isNotEqualTo(sha1before);
     assertThat(provider.revisionId(projectDir)).isEqualTo(sha1after);
+  }
+
+  @Test
+  public void revisionId_should_return_null_in_empty_repo() throws IOException, GitAPIException {
+    worktree = temp.newFolder().toPath();
+    Repository repo = FileRepositoryBuilder.create(worktree.resolve(".git").toFile());
+    repo.create();
+
+    git = new Git(repo);
+
+    Path projectDir = worktree.resolve("project");
+    Files.createDirectory(projectDir);
+
+    GitScmProviderBefore77 provider = newGitScmProvider();
+
+    assertThat(provider.revisionId(projectDir)).isNull();
   }
 
   private String randomizedContent(String prefix, int numLines) {
