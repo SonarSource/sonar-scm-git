@@ -55,14 +55,12 @@ public class JGitBlameCommand extends BlameCommand {
     File basedir = input.fileSystem().baseDir();
     try (Repository repo = JGitUtils.buildRepository(basedir.toPath()); Git git = Git.wrap(repo)) {
       File gitBaseDir = repo.getWorkTree();
-      if (Files.isRegularFile(gitBaseDir.toPath().resolve(".git/shallow"))) {
-        LOG.warn("Shallow clone detected, no blame information will be provided. "
-          + "You can convert to non-shallow with 'git fetch --unshallow'.");
-        analysisWarnings.addUnique("Shallow clone detected during the analysis. "
-          + "Some files will miss SCM information. This will affect features like auto-assignment of issues. "
-          + "Please configure your build to disable shallow clone.");
+
+      if (cloneIsInvalid(gitBaseDir)) {
+        // TODO why not try get whatever we can find?
         return;
       }
+
       Stream<InputFile> stream = StreamSupport.stream(input.filesToBlame().spliterator(), true);
       ForkJoinPool forkJoinPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), new GitThreadFactory(), null, false);
       forkJoinPool.submit(() -> stream.forEach(inputFile -> blame(output, git, gitBaseDir, inputFile)));
@@ -73,6 +71,28 @@ public class JGitBlameCommand extends BlameCommand {
         LOG.info("Git blame interrupted");
       }
     }
+  }
+
+  private boolean cloneIsInvalid(File gitBaseDir) {
+    if (Files.isRegularFile(gitBaseDir.toPath().resolve(".git/objects/info/alternates"))) {
+      LOG.warn("This repository references another local repository which is not supported. "
+        + "You can avoid borrow objects from another local repository by not using --reference or --shared when cloning it.");
+      analysisWarnings.addUnique("Clone with a reference was detected. "
+        + "Some files will miss SCM information. This will affect features like auto-assignment of issues. "
+        + "Please configure your build to not clone using a local reference.");
+      return true;
+    }
+
+    if (Files.isRegularFile(gitBaseDir.toPath().resolve(".git/shallow"))) {
+      LOG.warn("Shallow clone detected, no blame information will be provided. "
+        + "You can convert to non-shallow with 'git fetch --unshallow'.");
+      analysisWarnings.addUnique("Shallow clone detected during the analysis. "
+        + "Some files will miss SCM information. This will affect features like auto-assignment of issues. "
+        + "Please configure your build to disable shallow clone.");
+      return true;
+    }
+
+    return false;
   }
 
   private void blame(BlameOutput output, Git git, File gitBaseDir, InputFile inputFile) {

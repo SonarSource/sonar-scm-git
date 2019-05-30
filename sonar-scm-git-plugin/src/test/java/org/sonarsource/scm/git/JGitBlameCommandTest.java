@@ -304,6 +304,39 @@ public class JGitBlameCommandTest {
     verifyNoMoreInteractions(analysisWarnings);
   }
 
+  @Test
+  public void return_early_when_clone_with_reference_detected() throws IOException {
+    File projectDir = temp.newFolder();
+    javaUnzip(new File("test-repos/reference-git.zip"), projectDir);
+
+    File baseDir = new File(projectDir, "reference-git");
+
+    DefaultFileSystem fs = new DefaultFileSystem(baseDir);
+    when(input.fileSystem()).thenReturn(fs);
+
+    DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA).build();
+    when(input.filesToBlame()).thenReturn(Collections.singleton(inputFile));
+
+    // register warning with default wrapper
+    AnalysisWarnings analysisWarnings = mock(AnalysisWarnings.class);
+    AnalysisWarningsWrapper analysisWarningsWrapper = new DefaultAnalysisWarningsWrapper(analysisWarnings);
+    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver(), analysisWarningsWrapper);
+    BlameOutput output = mock(BlameOutput.class);
+    jGitBlameCommand.blame(input, output);
+
+    assertThat(logTester.logs()).first()
+      .matches(s -> s.contains("This repository references another local repository which is not supported"));
+    verifyZeroInteractions(output);
+
+    verify(analysisWarnings).addUnique(startsWith("Clone with a reference was detected"));
+
+    // do not register warning with noop wrapper
+    jGitBlameCommand = new JGitBlameCommand(new PathResolver(), new NoOpAnalysisWarningsWrapper());
+    jGitBlameCommand.blame(input, output);
+
+    verifyNoMoreInteractions(analysisWarnings);
+  }
+
   private JGitBlameCommand newJGitBlameCommand() {
     return new JGitBlameCommand(new PathResolver(), mock(AnalysisWarningsWrapper.class));
   }
