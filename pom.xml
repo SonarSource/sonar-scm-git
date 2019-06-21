@@ -68,6 +68,20 @@
     <artifactsToPublish>${project.groupId}:sonar-scm-git-plugin:jar</artifactsToPublish>
   </properties>
 
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <configuration>
+	    <source>8</source>
+          </configuration>
+        </plugin>  
+      </plugins>
+    </pluginManagement>	   
+  </build>	  
+
   <profiles>
     <profile>
       <id>its</id>
