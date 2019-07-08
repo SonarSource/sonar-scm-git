@@ -6,7 +6,7 @@
   <parent>
     <groupId>org.sonarsource.scm.git</groupId>
     <artifactId>sonar-scm-git</artifactId>
-    <version>1.9-SNAPSHOT</version>
+    <version>1.10-SNAPSHOT</version>
   </parent>
 
   <artifactId>it-scmgit</artifactId>
