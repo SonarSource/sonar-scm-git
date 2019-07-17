@@ -29,12 +29,16 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
+import java.io.BufferedOutputStream;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffAlgorithm;
 import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.diff.DiffFormatter;
+import org.eclipse.jgit.diff.RawTextComparator;
 import org.eclipse.jgit.lib.Config;
 import org.eclipse.jgit.lib.ConfigConstants;
+import org.eclipse.jgit.lib.NullProgressMonitor;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
@@ -45,7 +49,9 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.revwalk.filter.RevFilter;
 import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.eclipse.jgit.treewalk.FileTreeIterator;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
+import org.eclipse.jgit.util.io.NullOutputStream;
 import org.sonar.api.batch.scm.BlameCommand;
 import org.sonar.api.batch.scm.ScmProvider;
 import org.sonar.api.utils.MessageException;
@@ -137,17 +143,20 @@ public class GitScmProviderBefore77 extends ScmProvider {
           ChangedLinesComputer computer = new ChangedLinesComputer();
           Path repoRootDir = repo.getDirectory().toPath().getParent();
 
-          try {
-            List<DiffEntry> diffEntries = git.diff()
-              .setOutputStream(computer.receiver())
-              .setOldTree(prepareTreeParser(repo, targetRef))
-              .setPathFilter(PathFilter.create(toGitPath(repoRootDir.relativize(path).toString())))
-              .call();
+          try (DiffFormatter diffFmt = new DiffFormatter(new BufferedOutputStream(computer.receiver()))) {
+            diffFmt.setRepository(repo);
+            diffFmt.setProgressMonitor(NullProgressMonitor.INSTANCE);
+            diffFmt.setDiffComparator(RawTextComparator.WS_IGNORE_ALL);
+            diffFmt.setPathFilter(PathFilter.create(toGitPath(repoRootDir.relativize(path).toString())));
 
+            List<DiffEntry> diffEntries = diffFmt.scan(prepareTreeParser(repo, targetRef), new FileTreeIterator(repo));
+            diffFmt.format(diffEntries);
+            diffFmt.flush();
             diffEntries.stream()
               .filter(diffEntry -> diffEntry.getChangeType() == DiffEntry.ChangeType.ADD || diffEntry.getChangeType() == DiffEntry.ChangeType.MODIFY)
-              .forEach(diffEntry -> changedLines.put(path, computer.changedLines()));
-          } catch (Exception e) {
+              .forEach(diffEntry -> changedLines.put(path, computer.changedLines()));      
+          }
+          catch (Exception e) {
             LOG.warn("Failed to get changed lines from git for file " + path, e);
           }
         }
