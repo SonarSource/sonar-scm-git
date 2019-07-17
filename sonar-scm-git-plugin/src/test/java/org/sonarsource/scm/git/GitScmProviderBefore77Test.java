@@ -29,14 +29,16 @@ import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.diff.DiffEntry;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.RefDatabase;
 import org.eclipse.jgit.lib.Repository;
@@ -58,7 +60,6 @@ import static org.assertj.core.data.MapEntry.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -373,7 +374,7 @@ public class GitScmProviderBefore77Test {
 
     GitScmProviderBefore77 provider = new GitScmProviderBefore77(mockCommand(), analysisWarnings) {
       @Override
-      Repository buildRepo(Path basedir) throws IOException {
+      Repository buildRepo(Path basedir) {
         return repository;
       }
     };
@@ -425,31 +426,38 @@ public class GitScmProviderBefore77Test {
   }
 
   @Test
-  public void branchChangedLines_omits_files_with_git_api_errors() throws GitAPIException {
-    DiffEntry diffEntry = mock(DiffEntry.class);
-    when(diffEntry.getChangeType()).thenReturn(DiffEntry.ChangeType.MODIFY);
+  public void branchChangedLines_omits_files_with_git_api_errors() throws IOException, GitAPIException {
+    String f1 = "file-in-first-commit.xoo";
+    String f2 = "file2-in-first-commit.xoo";
 
-    DiffCommand diffCommand = mock(DiffCommand.class);
-    when(diffCommand.setOutputStream(any())).thenReturn(diffCommand);
-    when(diffCommand.setOldTree(any())).thenReturn(diffCommand);
-    when(diffCommand.setPathFilter(any())).thenReturn(diffCommand);
-    when(diffCommand.call())
-      .thenReturn(Collections.singletonList(diffEntry))
-      .thenThrow(mock(GitAPIException.class));
+    createAndCommitFile(f2);
 
-    Git git = mock(Git.class);
-    when(git.diff()).thenReturn(diffCommand);
+    git.branchCreate().setName("b1").call();
+    git.checkout().setName("b1").call();
 
+    // both files modified
+    addLineToFile(f1, 1);
+    addLineToFile(f2, 2);
+
+    commit(f1);
+    commit(f2);
+
+    AtomicInteger callCount = new AtomicInteger(0);
     GitScmProviderBefore77 provider = new GitScmProviderBefore77(mockCommand(), analysisWarnings) {
       @Override
-      Git newGit(Repository repo) {
-        return git;
+      RevWalk newRevWalk(Repository repo) {
+        if (callCount.getAndIncrement() == 1) {
+          throw new RuntimeException("error");
+        }
+        return new RevWalk(repo);
       }
     };
-    assertThat(provider.branchChangedLines("master", worktree,
-      ImmutableSet.of(worktree.resolve("foo"), worktree.resolve("bar"))))
-      .isEqualTo(ImmutableMap.of(worktree.resolve("foo"), emptySet()));
-    verify(diffCommand, times(2)).call();
+    Set<Path> changedFiles = new LinkedHashSet<>();
+    changedFiles.add(worktree.resolve(f1));
+    changedFiles.add(worktree.resolve(f2));
+
+    assertThat(provider.branchChangedLines("master", worktree, changedFiles))
+      .isEqualTo(Collections.singletonMap(worktree.resolve(f1), Collections.singleton(1)));
   }
 
   @Test
