@@ -19,23 +19,20 @@
  */
 package org.sonarsource.scm.git;
 
-import java.nio.file.Path;
-import java.util.Map;
-import java.util.Set;
-import javax.annotation.CheckForNull;
+import java.util.Objects;
 
-public class GitScmProvider extends GitScmProviderBefore80 {
-  public GitScmProvider(JGitBlameCommand jgitBlameCommand, AnalysisWarningsWrapper analysisWarnings, GitIgnoreCommand gitIgnoreCommand) {
-    super(jgitBlameCommand, analysisWarnings, gitIgnoreCommand);
+public class GitScmProviderBefore80 extends GitScmProviderBefore77 {
+
+  private final GitIgnoreCommand gitIgnoreCommand;
+
+  public GitScmProviderBefore80(JGitBlameCommand jgitBlameCommand, AnalysisWarningsWrapper analysisWarnings, GitIgnoreCommand gitIgnoreCommand) {
+    super(jgitBlameCommand, analysisWarnings);
+    this.gitIgnoreCommand = gitIgnoreCommand;
   }
 
-  @CheckForNull
-  public Set<Path> branchChangedFiles(ForkPoint forkPoint, Path rootBaseDir) {
-    return super.branchChangedFiles(forkPoint, rootBaseDir);
+  @Override
+  public GitIgnoreCommand ignoreCommand() {
+    return Objects.requireNonNull(gitIgnoreCommand, "This method should never be called before SQ 7.6");
   }
 
-  @CheckForNull
-  protected Map<Path, Set<Integer>> branchChangedLines(ForkPoint forkPoint, Path projectBaseDir, Set<Path> changedFiles) {
-    return super.branchChangedLines(forkPoint, projectBaseDir, changedFiles);
-  }
 }

@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -486,6 +485,100 @@ public class GitScmProviderBefore77Test {
     Path path = worktree.resolve(filename);
     Files.createFile(path);
     assertThat(newGitScmProvider().relativePathFromScmRoot(path)).isEqualTo(filename);
+  }
+
+  /**
+   * bc7724f (origin/c) c7
+   | * 1939ee4 (a, origin/a) c6
+   | | *   a579f95 (master, b) c5
+   | | |
+   | | |
+   | |/|
+   | * | a59df81 c4
+   | | * a9d15ea c3
+   | |/
+   | * 6daf3b6 c2
+   |/
+   * 4e31474 c1
+   */
+  @Test
+  public void detect_fork_point() throws IOException {
+    Path tmp = temp.newFolder().toPath();
+    javaUnzip(new File("test-repos/fork-point-test.zip"), tmp.toFile());
+    Path projectDir = tmp.resolve("fork-point-test");
+
+    GitScmProviderBefore77 provider = newGitScmProvider();
+    ForkPoint forkPoint = provider.findLatestForkPoint(projectDir);
+
+    assertThat(forkPoint.commit()).isEqualTo("a59df8161c4cf0a50ef3c5a5c7736cc3d49060b5");
+    assertThat(forkPoint.distanceFromHead()).isEqualTo(1);
+  }
+
+  @Test
+  public void detect_fork_point2() throws IOException, GitAPIException {
+    Path tmp = temp.newFolder().toPath();
+    javaUnzip(new File("test-repos/fork-point-test.zip"), tmp.toFile());
+    Path projectDir = tmp.resolve("fork-point-test");
+
+    Repository repo = FileRepositoryBuilder.create(projectDir.resolve(".git").toFile());
+    git = new Git(repo);
+    git.checkout().setName("a").call();
+    git.close();
+
+    GitScmProviderBefore77 provider = newGitScmProvider();
+    ForkPoint forkPoint = provider.findLatestForkPoint(projectDir);
+
+    assertThat(forkPoint.commit()).isEqualTo("a59df8161c4cf0a50ef3c5a5c7736cc3d49060b5");
+    assertThat(forkPoint.distanceFromHead()).isEqualTo(2);
+  }
+
+  /**
+   * bc7724f (origin/c) c7
+   | * 1939ee4 (a, origin/a) c6
+   | | *   a579f95 (master, b) c5
+   | | |
+   | | |
+   | |/|
+   | * | a59df81 c4
+   | | * a9d15ea c3
+   | |/
+   | * 6daf3b6 c2
+   |/
+   * 4e31474 c1
+   */
+  @Test
+  public void detect_fork_point3() throws IOException, GitAPIException {
+    Path tmp = temp.newFolder().toPath();
+    javaUnzip(new File("test-repos/fork-point-test.zip"), tmp.toFile());
+    Path projectDir = tmp.resolve("fork-point-test");
+
+    Repository repo = FileRepositoryBuilder.create(projectDir.resolve(".git").toFile());
+    git = new Git(repo);
+    git.checkout().setName("origin/c").call();
+    git.close();
+
+    GitScmProviderBefore77 provider = newGitScmProvider();
+    ForkPoint forkPoint = provider.findLatestForkPoint(projectDir);
+
+    assertThat(forkPoint.commit()).isEqualTo("4e314742e309356326e584ba25baec234166a7e7");
+    assertThat(forkPoint.distanceFromHead()).isEqualTo(1);
+  }
+
+  @Test
+  public void detect_no_fork_point() throws IOException, GitAPIException {
+    Path tmp = temp.newFolder().toPath();
+    javaUnzip(new File("test-repos/fork-point-test.zip"), tmp.toFile());
+    Path projectDir = tmp.resolve("fork-point-test");
+
+    Repository repo = FileRepositoryBuilder.create(projectDir.resolve(".git").toFile());
+    git = new Git(repo);
+    git.checkout().setName("4e314742e309356326e584ba25baec234166a7e7").call();
+    git.close();
+
+    GitScmProviderBefore77 provider = newGitScmProvider();
+    ForkPoint forkPoint = provider.findLatestForkPoint(projectDir);
+
+    assertThat(forkPoint).isNull();
   }
 
   @Test

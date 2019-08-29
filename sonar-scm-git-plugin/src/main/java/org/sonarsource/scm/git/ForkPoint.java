@@ -19,23 +19,20 @@
  */
 package org.sonarsource.scm.git;
 
-import java.nio.file.Path;
-import java.util.Map;
-import java.util.Set;
-import javax.annotation.CheckForNull;
+public class ForkPoint {
+  private final String commit;
+  private final int distanceFromHead;
 
-public class GitScmProvider extends GitScmProviderBefore80 {
-  public GitScmProvider(JGitBlameCommand jgitBlameCommand, AnalysisWarningsWrapper analysisWarnings, GitIgnoreCommand gitIgnoreCommand) {
-    super(jgitBlameCommand, analysisWarnings, gitIgnoreCommand);
+  public ForkPoint(String commit, int distanceFromHead) {
+    this.commit = commit;
+    this.distanceFromHead = distanceFromHead;
   }
 
-  @CheckForNull
-  public Set<Path> branchChangedFiles(ForkPoint forkPoint, Path rootBaseDir) {
-    return super.branchChangedFiles(forkPoint, rootBaseDir);
+  public String commit() {
+    return commit;
   }
 
-  @CheckForNull
-  protected Map<Path, Set<Integer>> branchChangedLines(ForkPoint forkPoint, Path projectBaseDir, Set<Path> changedFiles) {
-    return super.branchChangedLines(forkPoint, projectBaseDir, changedFiles);
+  public int distanceFromHead() {
+    return distanceFromHead;
   }
 }

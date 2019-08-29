@@ -19,6 +19,7 @@
  */
 package org.sonarsource.scm.git;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -29,8 +30,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
-import java.io.BufferedOutputStream;
-
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffAlgorithm;
@@ -89,24 +88,47 @@ public class GitScmProviderBefore77 extends ScmProvider {
   @CheckForNull
   @Override
   public Set<Path> branchChangedFiles(String targetBranchName, Path rootBaseDir) {
-    try (Repository repo = buildRepo(rootBaseDir)) {
+    ForkPoint forkPoint = findForkPoint(rootBaseDir, targetBranchName);
+    if (forkPoint == null) {
+      return null;
+    }
+
+    return branchChangedFiles(forkPoint, rootBaseDir);
+  }
+
+  @CheckForNull
+  public ForkPoint findForkPoint(Path projectBaseDir, String targetBranchName) {
+    try (Repository repo = buildRepo(projectBaseDir)) {
       Ref targetRef = resolveTargetRef(targetBranchName, repo);
       if (targetRef == null) {
         return null;
       }
 
+      FindLatestForkWalk walk = new FindLatestForkWalk(repo);
+      return walk.find(targetRef);
+    } catch (IOException e) {
+      LOG.warn("Failed to find fork point", e);
+    }
+    return null;
+  }
+
+  @CheckForNull
+  protected Set<Path> branchChangedFiles(ForkPoint forkPoint, Path rootBaseDir) {
+    try (Repository repo = buildRepo(rootBaseDir)) {
       if (!isDiffAlgoValid(repo.getConfig())) {
         LOG.warn("The diff algorithm configured in git is not supported. "
           + "No information regarding changes in the branch will be collected, which can lead to unexpected results.");
         return null;
       }
 
+      RevCommit commit = repo.parseCommit(ObjectId.fromString(forkPoint.commit()));
+
       // we compare a commit with HEAD, so no point ignoring line endings (it will be whatever is committed)
       try (Git git = newGit(repo)) {
         List<DiffEntry> diffEntries = git.diff()
           .setShowNameAndStatusOnly(true)
-          .setOldTree(prepareTreeParser(repo, targetRef))
-          .setNewTree(prepareNewTree(repo))
+          .setOldTree(prepareCommitTreeParser(repo, commit))
+          .setNewTree(prepareHeadTreeParser(repo))
           .call();
 
         return diffEntries.stream()
@@ -121,18 +143,14 @@ public class GitScmProviderBefore77 extends ScmProvider {
   }
 
   @CheckForNull
-  @Override
-  public Map<Path, Set<Integer>> branchChangedLines(String targetBranchName, Path projectBaseDir, Set<Path> changedFiles) {
+  protected Map<Path, Set<Integer>> branchChangedLines(ForkPoint forkPoint, Path projectBaseDir, Set<Path> changedFiles) {
     try (Repository repo = buildRepo(projectBaseDir)) {
-      Ref targetRef = resolveTargetRef(targetBranchName, repo);
-      if (targetRef == null) {
-        return null;
-      }
-
       if (!isDiffAlgoValid(repo.getConfig())) {
         // we already print a warning when branchChangedFiles is called
         return null;
       }
+
+      RevCommit commit = repo.parseCommit(ObjectId.fromString(forkPoint.commit()));
 
       // force ignore different line endings when comparing a commit with the workspace
       repo.getConfig().setBoolean("core", null, "autocrlf", true);
@@ -149,7 +167,7 @@ public class GitScmProviderBefore77 extends ScmProvider {
           diffFmt.setDiffComparator(RawTextComparator.WS_IGNORE_ALL);
           diffFmt.setPathFilter(PathFilter.create(toGitPath(repoRootDir.relativize(path).toString())));
 
-          List<DiffEntry> diffEntries = diffFmt.scan(prepareTreeParser(repo, targetRef), new FileTreeIterator(repo));
+          List<DiffEntry> diffEntries = diffFmt.scan(prepareCommitTreeParser(repo, commit), new FileTreeIterator(repo));
           diffFmt.format(diffEntries);
           diffFmt.flush();
           diffEntries.stream()
@@ -165,6 +183,28 @@ public class GitScmProviderBefore77 extends ScmProvider {
       LOG.warn("Failed to get changed lines from git", e);
     }
     return null;
+  }
+
+  @CheckForNull
+  public ForkPoint findLatestForkPoint(Path projectBaseDir) {
+    try (Repository repo = buildRepo(projectBaseDir)) {
+      FindLatestForkWalk walk = new FindLatestForkWalk(repo);
+      return walk.find();
+    } catch (IOException e) {
+      LOG.warn("Failed to find latest fork point", e);
+    }
+    return null;
+  }
+
+  @CheckForNull
+  @Override
+  public Map<Path, Set<Integer>> branchChangedLines(String targetBranchName, Path projectBaseDir, Set<Path> changedFiles) {
+    ForkPoint forkPoint = findForkPoint(projectBaseDir, targetBranchName);
+    if (forkPoint == null) {
+      return null;
+    }
+
+    return branchChangedLines(forkPoint, projectBaseDir, changedFiles);
   }
 
   private static String toGitPath(String path) {
@@ -220,42 +260,24 @@ public class GitScmProviderBefore77 extends ScmProvider {
     }
   }
 
-  private static AbstractTreeIterator prepareNewTree(Repository repo) throws IOException {
-    CanonicalTreeParser treeParser = new CanonicalTreeParser();
-    try (ObjectReader objectReader = repo.newObjectReader()) {
-      treeParser.reset(objectReader, repo.parseCommit(getHead(repo).getObjectId()).getTree());
-    }
-    return treeParser;
+  private static AbstractTreeIterator prepareHeadTreeParser(Repository repo) throws IOException {
+    return prepareCommitTreeParser(repo, repo.parseCommit(getHead(repo).getObjectId()));
   }
 
   private static Ref getHead(Repository repo) throws IOException {
     return repo.exactRef("HEAD");
   }
 
-  private AbstractTreeIterator prepareTreeParser(Repository repo, Ref targetRef) throws IOException {
-    try (RevWalk walk = newRevWalk(repo)) {
-      walk.markStart(walk.parseCommit(targetRef.getObjectId()));
-      walk.markStart(walk.parseCommit(getHead(repo).getObjectId()));
-      walk.setRevFilter(RevFilter.MERGE_BASE);
-      RevCommit base = walk.parseCommit(walk.next());
-      LOG.debug("Merge base sha1: {}", base.getName());
-      CanonicalTreeParser treeParser = new CanonicalTreeParser();
-      try (ObjectReader objectReader = repo.newObjectReader()) {
-        treeParser.reset(objectReader, base.getTree());
-      }
-
-      walk.dispose();
-
-      return treeParser;
+  private static AbstractTreeIterator prepareCommitTreeParser(Repository repo, RevCommit commit) throws IOException {
+    CanonicalTreeParser treeParser = new CanonicalTreeParser();
+    try (ObjectReader objectReader = repo.newObjectReader()) {
+      treeParser.reset(objectReader, commit.getTree());
     }
+    return treeParser;
   }
 
   Git newGit(Repository repo) {
     return new Git(repo);
-  }
-
-  RevWalk newRevWalk(Repository repo) {
-    return new RevWalk(repo);
   }
 
   Repository buildRepo(Path basedir) throws IOException {

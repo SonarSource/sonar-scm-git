@@ -31,7 +31,7 @@ public class JGitUtils {
 
   public static Repository buildRepository(Path basedir) {
     try {
-      Repository repo = GitScmProvider.getVerifiedRepositoryBuilder(basedir).build();
+      Repository repo = GitScmProviderBefore80.getVerifiedRepositoryBuilder(basedir).build();
       try (ObjectReader objReader = repo.getObjectDatabase().newReader()) {
         // SONARSCGIT-2 Force initialization of shallow commits to avoid later concurrent modification issue
         objReader.getShallowCommits();
