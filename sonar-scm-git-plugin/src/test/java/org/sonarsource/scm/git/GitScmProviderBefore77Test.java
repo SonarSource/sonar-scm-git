@@ -339,9 +339,8 @@ public class GitScmProviderBefore77Test {
   @Test
   public void branchChangedFiles_use_remote_target_ref_when_running_on_circle_ci() throws IOException, GitAPIException {
     when(system2.envVariable("CIRCLECI")).thenReturn("true");
-    String content = "abcde";
     git.checkout().setName("b1").setCreateBranch(true).call();
-    createAndCommitFile("file-b1", content);
+    createAndCommitFile("file-b1");
 
     Path worktree2 = temp.newFolder().toPath();
     Git local = Git.cloneRepository()
