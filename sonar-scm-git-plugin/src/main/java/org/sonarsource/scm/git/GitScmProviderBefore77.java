@@ -199,7 +199,7 @@ public class GitScmProviderBefore77 extends ScmProvider {
   }
 
   @CheckForNull
-  private Ref getFirstExistingRef(Repository repo, String first, String second) throws IOException {
+  private static Ref getFirstExistingRef(Repository repo, String first, String second) throws IOException {
     Ref targetRef = repo.exactRef(first);
     if (targetRef != null) {
       return targetRef;
