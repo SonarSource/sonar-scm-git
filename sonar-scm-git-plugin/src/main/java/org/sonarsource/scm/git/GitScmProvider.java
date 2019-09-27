@@ -20,13 +20,14 @@
 package org.sonarsource.scm.git;
 
 import java.util.Objects;
+import org.sonar.api.utils.System2;
 
 public class GitScmProvider extends GitScmProviderBefore77 {
 
   private final GitIgnoreCommand gitIgnoreCommand;
 
-  public GitScmProvider(JGitBlameCommand jgitBlameCommand, AnalysisWarningsWrapper analysisWarnings, GitIgnoreCommand gitIgnoreCommand) {
-    super(jgitBlameCommand, analysisWarnings);
+  public GitScmProvider(JGitBlameCommand jgitBlameCommand, AnalysisWarningsWrapper analysisWarnings, GitIgnoreCommand gitIgnoreCommand, System2 system2) {
+    super(jgitBlameCommand, analysisWarnings, system2);
     this.gitIgnoreCommand = gitIgnoreCommand;
   }
 

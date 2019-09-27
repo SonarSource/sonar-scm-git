@@ -53,6 +53,7 @@ import org.sonar.api.internal.google.common.collect.ImmutableMap;
 import org.sonar.api.internal.google.common.collect.ImmutableSet;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.MessageException;
+import org.sonar.api.utils.System2;
 
 import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -102,6 +103,7 @@ public class GitScmProviderBefore77Test {
   public ExpectedException thrown = ExpectedException.none();
 
   private static final Random random = new Random();
+  private static final System2 system2 = mock(System2.class);
 
   private Path worktree;
   private Git git;
@@ -126,7 +128,7 @@ public class GitScmProviderBefore77Test {
   @Test
   public void returnImplem() {
     JGitBlameCommand jblameCommand = new JGitBlameCommand(new PathResolver(), analysisWarnings);
-    GitScmProviderBefore77 gitScmProvider = new GitScmProviderBefore77(jblameCommand, analysisWarnings);
+    GitScmProviderBefore77 gitScmProvider = new GitScmProviderBefore77(jblameCommand, analysisWarnings, system2);
 
     assertThat(gitScmProvider.blameCommand()).isEqualTo(jblameCommand);
   }
@@ -335,6 +337,51 @@ public class GitScmProviderBefore77Test {
   }
 
   @Test
+  public void branchChangedFiles_use_remote_target_ref_when_running_on_circle_ci() throws IOException, GitAPIException {
+    when(system2.envVariable("CIRCLECI")).thenReturn("true");
+    String content = "abcde";
+    git.branchCreate().setName("b1").call();
+    git.checkout().setName("b1").call();
+    createAndCommitFile("file-b1", content);
+
+    Path worktree2 = temp.newFolder().toPath();
+    Git local = Git.cloneRepository()
+      .setURI(worktree.toString())
+      .setDirectory(worktree2.toFile())
+      .call();
+
+    // Make local master match analyzed branch, so if local ref is used then change files will be empty
+    local.checkout().setCreateBranch(true).setName("master").setStartPoint("origin/b1").call();
+    local.checkout().setName("b1").call();
+
+    assertThat(newScmProvider().branchChangedFiles("master", worktree2))
+      .containsOnly(worktree2.resolve("file-b1"));
+    verifyZeroInteractions(analysisWarnings);
+  }
+
+  @Test
+  public void branchChangedFiles_falls_back_to_local_ref_if_origin_branch_does_not_exist_when_running_on_circle_ci() throws IOException, GitAPIException {
+    when(system2.envVariable("CIRCLECI")).thenReturn("true");
+    String content = "abcde";
+    git.branchCreate().setName("b1").call();
+    git.checkout().setName("b1").call();
+    createAndCommitFile("file-b1", content);
+
+    Path worktree2 = temp.newFolder().toPath();
+    Git local = Git.cloneRepository()
+      .setURI(worktree.toString())
+      .setDirectory(worktree2.toFile())
+      .call();
+
+    local.checkout().setName("local-only").setCreateBranch(true).setStartPoint("origin/master").call();
+    local.checkout().setName("b1").call();
+
+    assertThat(newScmProvider().branchChangedFiles("local-only", worktree2))
+      .containsOnly(worktree2.resolve("file-b1"));
+    verifyZeroInteractions(analysisWarnings);
+  }
+
+  @Test
   public void branchChangedFiles_should_return_null_when_branch_nonexistent() {
     assertThat(newScmProvider().branchChangedFiles("nonexistent", worktree)).isNull();
   }
@@ -355,7 +402,7 @@ public class GitScmProviderBefore77Test {
 
   @Test
   public void branchChangedFiles_should_return_null_on_io_errors_of_repo_builder() {
-    GitScmProviderBefore77 provider = new GitScmProviderBefore77(mockCommand(), analysisWarnings) {
+    GitScmProviderBefore77 provider = new GitScmProviderBefore77(mockCommand(), analysisWarnings, system2) {
       @Override
       Repository buildRepo(Path basedir) throws IOException {
         throw new IOException();
@@ -372,7 +419,7 @@ public class GitScmProviderBefore77Test {
     when(repository.getRefDatabase()).thenReturn(refDatabase);
     when(refDatabase.getRef("branch")).thenReturn(null);
 
-    GitScmProviderBefore77 provider = new GitScmProviderBefore77(mockCommand(), analysisWarnings) {
+    GitScmProviderBefore77 provider = new GitScmProviderBefore77(mockCommand(), analysisWarnings, system2) {
       @Override
       Repository buildRepo(Path basedir) {
         return repository;
@@ -390,7 +437,7 @@ public class GitScmProviderBefore77Test {
     RevWalk walk = mock(RevWalk.class);
     when(walk.parseCommit(any())).thenThrow(new IOException());
 
-    GitScmProviderBefore77 provider = new GitScmProviderBefore77(mockCommand(), analysisWarnings) {
+    GitScmProviderBefore77 provider = new GitScmProviderBefore77(mockCommand(), analysisWarnings, system2) {
       @Override
       RevWalk newRevWalk(Repository repo) {
         return walk;
@@ -410,7 +457,7 @@ public class GitScmProviderBefore77Test {
     Git git = mock(Git.class);
     when(git.diff()).thenReturn(diffCommand);
 
-    GitScmProviderBefore77 provider = new GitScmProviderBefore77(mockCommand(), analysisWarnings) {
+    GitScmProviderBefore77 provider = new GitScmProviderBefore77(mockCommand(), analysisWarnings, system2) {
       @Override
       Git newGit(Repository repo) {
         return git;
@@ -443,7 +490,7 @@ public class GitScmProviderBefore77Test {
     commit(f2);
 
     AtomicInteger callCount = new AtomicInteger(0);
-    GitScmProviderBefore77 provider = new GitScmProviderBefore77(mockCommand(), analysisWarnings) {
+    GitScmProviderBefore77 provider = new GitScmProviderBefore77(mockCommand(), analysisWarnings, system2) {
       @Override
       RevWalk newRevWalk(Repository repo) {
         if (callCount.getAndIncrement() == 1) {
@@ -462,7 +509,7 @@ public class GitScmProviderBefore77Test {
 
   @Test
   public void branchChangedLines_returns_null_on_io_errors_of_repo_builder() {
-    GitScmProviderBefore77 provider = new GitScmProviderBefore77(mockCommand(), analysisWarnings) {
+    GitScmProviderBefore77 provider = new GitScmProviderBefore77(mockCommand(), analysisWarnings, system2) {
       @Override
       Repository buildRepo(Path basedir) throws IOException {
         throw new IOException();
@@ -477,7 +524,7 @@ public class GitScmProviderBefore77Test {
   }
 
   private GitScmProviderBefore77 newGitScmProvider() {
-    return new GitScmProviderBefore77(mock(JGitBlameCommand.class), analysisWarnings);
+    return new GitScmProviderBefore77(mock(JGitBlameCommand.class), analysisWarnings, system2);
   }
 
   @Test
@@ -516,7 +563,7 @@ public class GitScmProviderBefore77Test {
   }
 
   @Test
-  public void revisionId_should_return_null_in_empty_repo() throws IOException, GitAPIException {
+  public void revisionId_should_return_null_in_empty_repo() throws IOException {
     worktree = temp.newFolder().toPath();
     Repository repo = FileRepositoryBuilder.create(worktree.resolve(".git").toFile());
     repo.create();
@@ -586,6 +633,6 @@ public class GitScmProviderBefore77Test {
   }
 
   private GitScmProviderBefore77 newScmProvider() {
-    return new GitScmProviderBefore77(mockCommand(), analysisWarnings);
+    return new GitScmProviderBefore77(mockCommand(), analysisWarnings, system2);
   }
 }
