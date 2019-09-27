@@ -340,8 +340,7 @@ public class GitScmProviderBefore77Test {
   public void branchChangedFiles_use_remote_target_ref_when_running_on_circle_ci() throws IOException, GitAPIException {
     when(system2.envVariable("CIRCLECI")).thenReturn("true");
     String content = "abcde";
-    git.branchCreate().setName("b1").call();
-    git.checkout().setName("b1").call();
+    git.checkout().setName("b1").setCreateBranch(true).call();
     createAndCommitFile("file-b1", content);
 
     Path worktree2 = temp.newFolder().toPath();
@@ -362,10 +361,8 @@ public class GitScmProviderBefore77Test {
   @Test
   public void branchChangedFiles_falls_back_to_local_ref_if_origin_branch_does_not_exist_when_running_on_circle_ci() throws IOException, GitAPIException {
     when(system2.envVariable("CIRCLECI")).thenReturn("true");
-    String content = "abcde";
-    git.branchCreate().setName("b1").call();
-    git.checkout().setName("b1").call();
-    createAndCommitFile("file-b1", content);
+    git.checkout().setName("b1").setCreateBranch(true).call();
+    createAndCommitFile("file-b1");
 
     Path worktree2 = temp.newFolder().toPath();
     Git local = Git.cloneRepository()
