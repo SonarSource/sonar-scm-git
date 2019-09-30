@@ -55,6 +55,7 @@ import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.sonar.api.batch.scm.BlameCommand;
 import org.sonar.api.batch.scm.ScmProvider;
 import org.sonar.api.utils.MessageException;
+import org.sonar.api.utils.System2;
 import org.sonar.api.utils.log.Logger;
 import org.sonar.api.utils.log.Loggers;
 
@@ -64,10 +65,12 @@ public class GitScmProviderBefore77 extends ScmProvider {
 
   private final JGitBlameCommand jgitBlameCommand;
   private final AnalysisWarningsWrapper analysisWarnings;
+  private final System2 system2;
 
-  public GitScmProviderBefore77(JGitBlameCommand jgitBlameCommand, AnalysisWarningsWrapper analysisWarnings) {
+  public GitScmProviderBefore77(JGitBlameCommand jgitBlameCommand, AnalysisWarningsWrapper analysisWarnings, System2 system2) {
     this.jgitBlameCommand = jgitBlameCommand;
     this.analysisWarnings = analysisWarnings;
+    this.system2 = system2;
   }
 
   @Override
@@ -173,10 +176,18 @@ public class GitScmProviderBefore77 extends ScmProvider {
 
   @CheckForNull
   private Ref resolveTargetRef(String targetBranchName, Repository repo) throws IOException {
-    Ref targetRef = repo.exactRef("refs/heads/" + targetBranchName);
-    if (targetRef == null) {
-      targetRef = repo.exactRef("refs/remotes/origin/" + targetBranchName);
+    String localRef = "refs/heads/" + targetBranchName;
+    String remoteRef = "refs/remotes/origin/" + targetBranchName;
+
+    Ref targetRef;
+    // Because circle ci destroys the local reference to master, try to load remote ref first.
+    // https://discuss.circleci.com/t/git-checkout-of-a-branch-destroys-local-reference-to-master/23781
+    if (runningOnCircleCI()) {
+      targetRef = getFirstExistingRef(repo, remoteRef, localRef);
+    } else {
+      targetRef = getFirstExistingRef(repo, localRef, remoteRef);
     }
+
     if (targetRef == null) {
       LOG.warn("Could not find ref: {} in refs/heads or refs/remotes/origin", targetBranchName);
       analysisWarnings.addUnique(String.format("Could not find ref '%s' in refs/heads or refs/remotes/origin. "
@@ -185,6 +196,19 @@ public class GitScmProviderBefore77 extends ScmProvider {
       return null;
     }
     return targetRef;
+  }
+
+  @CheckForNull
+  private static Ref getFirstExistingRef(Repository repo, String first, String second) throws IOException {
+    Ref targetRef = repo.exactRef(first);
+    if (targetRef != null) {
+      return targetRef;
+    }
+    return repo.exactRef(second);
+  }
+
+  private boolean runningOnCircleCI() {
+    return "true".equals(system2.envVariable("CIRCLECI"));
   }
 
   @Override
