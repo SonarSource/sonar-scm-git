@@ -183,8 +183,10 @@ public class GitScmProviderBefore77 extends ScmProvider {
     // Because circle ci destroys the local reference to master, try to load remote ref first.
     // https://discuss.circleci.com/t/git-checkout-of-a-branch-destroys-local-reference-to-master/23781
     if (runningOnCircleCI()) {
+      LOG.info("Running on circle CI");
       targetRef = getFirstExistingRef(repo, remoteRef, localRef);
     } else {
+      LOG.info("Not running on circle CI");
       targetRef = getFirstExistingRef(repo, localRef, remoteRef);
     }
 
