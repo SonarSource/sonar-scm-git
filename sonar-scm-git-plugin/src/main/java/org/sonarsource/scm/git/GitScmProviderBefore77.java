@@ -178,19 +178,20 @@ public class GitScmProviderBefore77 extends ScmProvider {
   private Ref resolveTargetRef(String targetBranchName, Repository repo) throws IOException {
     String localRef = "refs/heads/" + targetBranchName;
     String remoteRef = "refs/remotes/origin/" + targetBranchName;
-
+    String upstreamRef = "refs/remotes/upstream/" + targetBranchName;
+    
     Ref targetRef;
     // Because circle ci destroys the local reference to master, try to load remote ref first.
     // https://discuss.circleci.com/t/git-checkout-of-a-branch-destroys-local-reference-to-master/23781
     if (runningOnCircleCI()) {
-      targetRef = getFirstExistingRef(repo, remoteRef, localRef);
+      targetRef = getFirstExistingRef(repo, remoteRef, upstreamRef, localRef);
     } else {
-      targetRef = getFirstExistingRef(repo, localRef, remoteRef);
+      targetRef = getFirstExistingRef(repo, localRef, upstreamRef, remoteRef);
     }
 
     if (targetRef == null) {
-      LOG.warn("Could not find ref: {} in refs/heads or refs/remotes/origin", targetBranchName);
-      analysisWarnings.addUnique(String.format("Could not find ref '%s' in refs/heads or refs/remotes/origin. "
+      LOG.warn("Could not find ref: {} in refs/heads or refs/remotes/upstream or refs/remotes/origin", targetBranchName);
+      analysisWarnings.addUnique(String.format("Could not find ref '%s' in refs/heads or refs/remotes/upstream or refs/remotes/origin. "
         + "You may see unexpected issues and changes. "
         + "Please make sure to fetch this ref before pull request analysis.", targetBranchName));
       return null;
@@ -199,12 +200,15 @@ public class GitScmProviderBefore77 extends ScmProvider {
   }
 
   @CheckForNull
-  private static Ref getFirstExistingRef(Repository repo, String first, String second) throws IOException {
-    Ref targetRef = repo.exactRef(first);
-    if (targetRef != null) {
-      return targetRef;
-    }
-    return repo.exactRef(second);
+  private static Ref getFirstExistingRef(Repository repo, String... refs) throws IOException {
+	Ref targetRef = null;
+	for (String ref : refs) {
+		targetRef = repo.exactRef(ref);
+		if (targetRef != null) {
+			break;
+		}
+	}
+    return targetRef;
   }
 
   private boolean runningOnCircleCI() {
