@@ -378,6 +378,25 @@ public class GitScmProviderBefore77Test {
   }
 
   @Test
+  public void branchChangedFiles_falls_back_to_upstream_ref() throws IOException, GitAPIException {
+    git.branchCreate().setName("b1").call();
+    git.checkout().setName("b1").call();
+    createAndCommitFile("file-b1");
+
+    Path worktree2 = temp.newFolder().toPath();
+    Git.cloneRepository()
+      .setURI(worktree.toString())
+      .setRemote("upstream")
+      .setDirectory(worktree2.toFile())
+      .call();
+
+    assertThat(newScmProvider().branchChangedFiles("master", worktree2))
+      .containsOnly(worktree2.resolve("file-b1"));
+    verifyZeroInteractions(analysisWarnings);
+
+  }
+
+  @Test
   public void branchChangedFiles_should_return_null_when_branch_nonexistent() {
     assertThat(newScmProvider().branchChangedFiles("nonexistent", worktree)).isNull();
   }
@@ -423,7 +442,7 @@ public class GitScmProviderBefore77Test {
     };
     assertThat(provider.branchChangedFiles("branch", worktree)).isNull();
 
-    String warning = "Could not find ref 'branch' in refs/heads or refs/remotes/origin."
+    String warning = "Could not find ref 'branch' in refs/heads, refs/remotes/upstream or refs/remotes/origin."
       + " You may see unexpected issues and changes. Please make sure to fetch this ref before pull request analysis.";
     verify(analysisWarnings).addUnique(warning);
   }
