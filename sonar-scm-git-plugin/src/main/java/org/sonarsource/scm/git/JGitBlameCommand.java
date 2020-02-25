@@ -57,7 +57,6 @@ public class JGitBlameCommand extends BlameCommand {
       File gitBaseDir = repo.getWorkTree();
 
       if (cloneIsInvalid(gitBaseDir)) {
-        // TODO why not try get whatever we can find?
         return;
       }
 
@@ -75,12 +74,8 @@ public class JGitBlameCommand extends BlameCommand {
 
   private boolean cloneIsInvalid(File gitBaseDir) {
     if (Files.isRegularFile(gitBaseDir.toPath().resolve(".git/objects/info/alternates"))) {
-      LOG.warn("This repository references another local repository which is not supported. "
+      LOG.info("This git repository references another local repository which is not well supported. SCM information might be missing for some files. "
         + "You can avoid borrow objects from another local repository by not using --reference or --shared when cloning it.");
-      analysisWarnings.addUnique("Clone with a reference was detected. "
-        + "Some files will miss SCM information. This will affect features like auto-assignment of issues. "
-        + "Please configure your build to not clone using a local reference.");
-      return true;
     }
 
     if (Files.isRegularFile(gitBaseDir.toPath().resolve(".git/shallow"))) {

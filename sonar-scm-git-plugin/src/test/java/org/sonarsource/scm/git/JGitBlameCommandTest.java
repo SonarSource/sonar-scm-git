@@ -19,14 +19,6 @@
  */
 package org.sonarsource.scm.git;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,6 +37,18 @@ import org.sonar.api.utils.DateUtils;
 import org.sonar.api.utils.MessageException;
 import org.sonar.api.utils.System2;
 import org.sonar.api.utils.log.LogTester;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assume.assumeTrue;
@@ -307,38 +311,42 @@ public class JGitBlameCommandTest {
   @Test
   public void return_early_when_clone_with_reference_detected() throws IOException {
     File projectDir = temp.newFolder();
-    javaUnzip(new File("test-repos/reference-git.zip"), projectDir);
+    javaUnzip(new File("test-repos/dummy-git-reference-clone.zip"), projectDir);
 
-    File baseDir = new File(projectDir, "reference-git");
+    Path baseDir = projectDir.toPath().resolve("dummy-git2");
 
     DefaultFileSystem fs = new DefaultFileSystem(baseDir);
     when(input.fileSystem()).thenReturn(fs);
 
-    DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA).build();
+    DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA).setModuleBaseDir(baseDir).build();
     when(input.filesToBlame()).thenReturn(Collections.singleton(inputFile));
 
     // register warning with default wrapper
-    AnalysisWarnings analysisWarnings = mock(AnalysisWarnings.class);
-    AnalysisWarningsWrapper analysisWarningsWrapper = new DefaultAnalysisWarningsWrapper(analysisWarnings);
+    AnalysisWarningsWrapper analysisWarningsWrapper = mock(AnalysisWarningsWrapper.class);
     JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver(), analysisWarningsWrapper);
-    BlameOutput output = mock(BlameOutput.class);
+    TestBlameOutput output = new TestBlameOutput();
     jGitBlameCommand.blame(input, output);
 
     assertThat(logTester.logs()).first()
-      .matches(s -> s.contains("This repository references another local repository which is not supported"));
-    verifyZeroInteractions(output);
+      .matches(s -> s.contains("This git repository references another local repository which is not well supported"));
 
-    verify(analysisWarnings).addUnique(startsWith("Clone with a reference was detected"));
-
-    // do not register warning with noop wrapper
-    jGitBlameCommand = new JGitBlameCommand(new PathResolver(), new NoOpAnalysisWarningsWrapper());
-    jGitBlameCommand.blame(input, output);
-
-    verifyNoMoreInteractions(analysisWarnings);
+    // contains commits referenced from the old clone and commits in the new clone
+    assertThat(output.blame.keySet()).contains(inputFile);
+    assertThat(output.blame.get(inputFile).stream().map(BlameLine::revision))
+      .containsOnly("6b3aab35a3ea32c1636fee56f996e677653c48ea", "843c7c30d7ebd9a479e8f1daead91036c75cbc4e", "0d269c1acfb8e6d4d33f3c43041eb87e0df0f5e7");
+    verifyZeroInteractions(analysisWarningsWrapper);
   }
 
   private JGitBlameCommand newJGitBlameCommand() {
     return new JGitBlameCommand(new PathResolver(), mock(AnalysisWarningsWrapper.class));
+  }
+
+  private static class TestBlameOutput implements BlameOutput {
+    private Map<InputFile, List<BlameLine>> blame = new LinkedHashMap<>();
+
+    @Override public void blameResult(InputFile inputFile, List<BlameLine> list) {
+      blame.put(inputFile, list);
+    }
   }
 
 }
