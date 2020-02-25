@@ -55,7 +55,6 @@ import static org.junit.Assume.assumeTrue;
 import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.sonarsource.scm.git.Utils.javaUnzip;
@@ -290,8 +289,7 @@ public class JGitBlameCommandTest {
 
     // register warning with default wrapper
     AnalysisWarnings analysisWarnings = mock(AnalysisWarnings.class);
-    AnalysisWarningsWrapper analysisWarningsWrapper = new DefaultAnalysisWarningsWrapper(analysisWarnings);
-    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver(), analysisWarningsWrapper);
+    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver(), analysisWarnings);
     BlameOutput output = mock(BlameOutput.class);
     jGitBlameCommand.blame(input, output);
 
@@ -300,12 +298,6 @@ public class JGitBlameCommandTest {
     verifyZeroInteractions(output);
 
     verify(analysisWarnings).addUnique(startsWith("Shallow clone detected"));
-
-    // do not register warning with noop wrapper
-    jGitBlameCommand = new JGitBlameCommand(new PathResolver(), new NoOpAnalysisWarningsWrapper());
-    jGitBlameCommand.blame(input, output);
-
-    verifyNoMoreInteractions(analysisWarnings);
   }
 
   @Test
@@ -321,9 +313,9 @@ public class JGitBlameCommandTest {
     DefaultInputFile inputFile = new TestInputFileBuilder("foo", DUMMY_JAVA).setModuleBaseDir(baseDir).build();
     when(input.filesToBlame()).thenReturn(Collections.singleton(inputFile));
 
-    // register warning with default wrapper
-    AnalysisWarningsWrapper analysisWarningsWrapper = mock(AnalysisWarningsWrapper.class);
-    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver(), analysisWarningsWrapper);
+    // register warning
+    AnalysisWarnings analysisWarnings = mock(AnalysisWarnings.class);
+    JGitBlameCommand jGitBlameCommand = new JGitBlameCommand(new PathResolver(), analysisWarnings);
     TestBlameOutput output = new TestBlameOutput();
     jGitBlameCommand.blame(input, output);
 
@@ -334,11 +326,11 @@ public class JGitBlameCommandTest {
     assertThat(output.blame.keySet()).contains(inputFile);
     assertThat(output.blame.get(inputFile).stream().map(BlameLine::revision))
       .containsOnly("6b3aab35a3ea32c1636fee56f996e677653c48ea", "843c7c30d7ebd9a479e8f1daead91036c75cbc4e", "0d269c1acfb8e6d4d33f3c43041eb87e0df0f5e7");
-    verifyZeroInteractions(analysisWarningsWrapper);
+    verifyZeroInteractions(analysisWarnings);
   }
 
   private JGitBlameCommand newJGitBlameCommand() {
-    return new JGitBlameCommand(new PathResolver(), mock(AnalysisWarningsWrapper.class));
+    return new JGitBlameCommand(new PathResolver(), mock(AnalysisWarnings.class));
   }
 
   private static class TestBlameOutput implements BlameOutput {

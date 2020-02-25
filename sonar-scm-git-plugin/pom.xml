@@ -85,7 +85,7 @@
           <pluginName>Git</pluginName>
           <skipDependenciesPackaging>true</skipDependenciesPackaging>
           <pluginClass>org.sonarsource.scm.git.GitPlugin</pluginClass>
-          <sonarQubeMinVersion>5.6</sonarQubeMinVersion>
+          <sonarQubeMinVersion>7.9</sonarQubeMinVersion>
         </configuration>
       </plugin>
       <plugin>
