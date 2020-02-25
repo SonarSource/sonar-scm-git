@@ -20,19 +20,14 @@
 package org.sonarsource.scm.git;
 
 import org.sonar.api.Plugin;
-import org.sonar.api.utils.Version;
 
 public final class GitPlugin implements Plugin {
   @Override
   public void define(Context context) {
     context.addExtensions(
       JGitBlameCommand.class,
-      AnalysisWarningsSupport.getAnalysisWarningsWrapper(context.getRuntime()));
-    if (context.getRuntime().getApiVersion().isGreaterThanOrEqual(Version.create(7, 7))) {
-      context.addExtensions(GitScmProvider.class,
-        GitIgnoreCommand.class);
-    } else {
-      context.addExtension(GitScmProviderBefore77.class);
-    }
+      AnalysisWarningsSupport.getAnalysisWarningsWrapper(context.getRuntime()),
+      GitScmProvider.class,
+      GitIgnoreCommand.class);
   }
 }
