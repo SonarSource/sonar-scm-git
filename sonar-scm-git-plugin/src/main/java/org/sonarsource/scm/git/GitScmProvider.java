@@ -54,6 +54,7 @@ import org.eclipse.jgit.treewalk.FileTreeIterator;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.sonar.api.batch.scm.BlameCommand;
 import org.sonar.api.batch.scm.ScmProvider;
+import org.sonar.api.notifications.AnalysisWarnings;
 import org.sonar.api.utils.MessageException;
 import org.sonar.api.utils.System2;
 import org.sonar.api.utils.log.Logger;
@@ -64,11 +65,11 @@ public class GitScmProvider extends ScmProvider {
   private static final Logger LOG = Loggers.get(GitScmProvider.class);
 
   private final JGitBlameCommand jgitBlameCommand;
-  private final AnalysisWarningsWrapper analysisWarnings;
+  private final AnalysisWarnings analysisWarnings;
   private final GitIgnoreCommand gitIgnoreCommand;
   private final System2 system2;
 
-  public GitScmProvider(JGitBlameCommand jgitBlameCommand, AnalysisWarningsWrapper analysisWarnings, GitIgnoreCommand gitIgnoreCommand, System2 system2) {
+  public GitScmProvider(JGitBlameCommand jgitBlameCommand, AnalysisWarnings analysisWarnings, GitIgnoreCommand gitIgnoreCommand, System2 system2) {
     this.jgitBlameCommand = jgitBlameCommand;
     this.analysisWarnings = analysisWarnings;
     this.gitIgnoreCommand = gitIgnoreCommand;

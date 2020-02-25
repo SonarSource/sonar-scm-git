@@ -21,28 +21,19 @@ package org.sonarsource.scm.git;
 
 import org.junit.Test;
 import org.sonar.api.Plugin;
-import org.sonar.api.SonarQubeSide;
 import org.sonar.api.SonarRuntime;
-import org.sonar.api.internal.SonarRuntimeImpl;
-import org.sonar.api.utils.Version;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 public class GitPluginTest {
 
   @Test
-  public void getExtensions_before_7_7() {
-    SonarRuntime runtime = SonarRuntimeImpl.forSonarQube(Version.create(5, 6), SonarQubeSide.SCANNER);
+  public void getExtensions() {
+    SonarRuntime runtime = mock(SonarRuntime.class);
     Plugin.Context context = new Plugin.Context(runtime);
     new GitPlugin().define(context);
     assertThat(context.getExtensions()).hasSize(3);
   }
 
-  @Test
-  public void getExtensions_after_7_7() {
-    SonarRuntime runtime = SonarRuntimeImpl.forSonarQube(Version.create(7, 7), SonarQubeSide.SCANNER);
-    Plugin.Context context = new Plugin.Context(runtime);
-    new GitPlugin().define(context);
-    assertThat(context.getExtensions()).hasSize(4);
-  }
 }

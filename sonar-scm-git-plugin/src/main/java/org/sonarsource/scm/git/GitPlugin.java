@@ -26,7 +26,6 @@ public final class GitPlugin implements Plugin {
   public void define(Context context) {
     context.addExtensions(
       JGitBlameCommand.class,
-      AnalysisWarningsSupport.getAnalysisWarningsWrapper(context.getRuntime()),
       GitScmProvider.class,
       GitIgnoreCommand.class);
   }

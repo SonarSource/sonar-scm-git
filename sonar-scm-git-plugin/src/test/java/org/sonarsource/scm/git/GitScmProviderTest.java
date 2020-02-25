@@ -51,6 +51,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.sonar.api.internal.google.common.collect.ImmutableMap;
 import org.sonar.api.internal.google.common.collect.ImmutableSet;
+import org.sonar.api.notifications.AnalysisWarnings;
 import org.sonar.api.scan.filesystem.PathResolver;
 import org.sonar.api.utils.MessageException;
 import org.sonar.api.utils.System2;
@@ -108,7 +109,7 @@ public class GitScmProviderTest {
 
   private Path worktree;
   private Git git;
-  private final AnalysisWarningsWrapper analysisWarnings = mock(AnalysisWarningsWrapper.class);
+  private final AnalysisWarnings analysisWarnings = mock(AnalysisWarnings.class);
 
   @Before
   public void before() throws IOException, GitAPIException {
