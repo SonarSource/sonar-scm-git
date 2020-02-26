@@ -35,15 +35,15 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.RefDatabase;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.eclipse.jgit.treewalk.AbstractTreeIterator;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -133,6 +133,29 @@ public class GitScmProviderTest {
     GitScmProvider gitScmProvider = new GitScmProvider(jblameCommand, analysisWarnings, gitIgnoreCommand, system2);
 
     assertThat(gitScmProvider.blameCommand()).isEqualTo(jblameCommand);
+  }
+
+  /**
+   * SONARSCGIT-47
+   */
+  @Test
+  public void branchChangedFiles_should_not_crash_if_branches_have_no_common_ancestors() throws GitAPIException, IOException {
+    String fileName = "file-in-first-commit.xoo";
+    String renamedName = "file-renamed.xoo";
+    git.checkout().setOrphan(true).setName("b1").call();
+
+    Path file = worktree.resolve(fileName);
+    Path renamed = file.resolveSibling(renamedName);
+    addLineToFile(fileName, 1);
+
+    Files.move(file, renamed);
+    git.rm().addFilepattern(fileName).call();
+    commit(renamedName);
+
+    Set<Path> files = newScmProvider().branchChangedFiles("master", worktree);
+
+    // no shared history, so no diff
+    assertThat(files).isNull();
   }
 
   @Test
@@ -450,21 +473,7 @@ public class GitScmProviderTest {
   }
 
   @Test
-  public void branchChangedFiles_should_return_null_on_io_errors_of_RevWalk() throws IOException {
-    RevWalk walk = mock(RevWalk.class);
-    when(walk.parseCommit(any())).thenThrow(new IOException());
-
-    GitScmProvider provider = new GitScmProvider(mockCommand(), analysisWarnings, gitIgnoreCommand, system2) {
-      @Override
-      RevWalk newRevWalk(Repository repo) {
-        return walk;
-      }
-    };
-    assertThat(provider.branchChangedFiles("branch", worktree)).isNull();
-  }
-
-  @Test
-  public void branchChangedFiles_should_return_null_on_git_api_errors() throws GitAPIException {
+  public void branchChangedFiles_should_return_null_on_errors() throws GitAPIException {
     DiffCommand diffCommand = mock(DiffCommand.class);
     when(diffCommand.setShowNameAndStatusOnly(anyBoolean())).thenReturn(diffCommand);
     when(diffCommand.setOldTree(any())).thenReturn(diffCommand);
@@ -509,11 +518,11 @@ public class GitScmProviderTest {
     AtomicInteger callCount = new AtomicInteger(0);
     GitScmProvider provider = new GitScmProvider(mockCommand(), analysisWarnings, gitIgnoreCommand, system2) {
       @Override
-      RevWalk newRevWalk(Repository repo) {
+      AbstractTreeIterator prepareTreeParser(Repository repo, RevCommit commit) throws IOException {
         if (callCount.getAndIncrement() == 1) {
           throw new RuntimeException("error");
         }
-        return new RevWalk(repo);
+        return super.prepareTreeParser(repo, commit);
       }
     };
     Set<Path> changedFiles = new LinkedHashSet<>();
@@ -644,9 +653,12 @@ public class GitScmProviderTest {
     commit(relativePath);
   }
 
-  private void commit(String relativePath) throws GitAPIException {
-    git.add().addFilepattern(relativePath).call();
-    git.commit().setAuthor("joe", "joe@example.com").setMessage(relativePath).call();
+  private void commit(String... relativePaths) throws GitAPIException {
+    for (String path : relativePaths) {
+      git.add().addFilepattern(path).call();
+    }
+    String msg = String.join(",", relativePaths);
+    git.commit().setAuthor("joe", "joe@example.com").setMessage(msg).call();
   }
 
   private GitScmProvider newScmProvider() {

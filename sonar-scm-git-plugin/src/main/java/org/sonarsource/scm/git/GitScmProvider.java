@@ -19,18 +19,18 @@
  */
 package org.sonarsource.scm.git;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
-import java.io.BufferedOutputStream;
-
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffAlgorithm;
@@ -112,11 +112,18 @@ public class GitScmProvider extends ScmProvider {
         return null;
       }
 
+      Optional<RevCommit> mergeBaseCommit = findMergeBase(repo, targetRef);
+      if (!mergeBaseCommit.isPresent()) {
+        LOG.warn("No merge base found between HEAD and " + targetRef.getName());
+        return null;
+      }
+      AbstractTreeIterator mergeBaseTree = prepareTreeParser(repo, mergeBaseCommit.get());
+
       // we compare a commit with HEAD, so no point ignoring line endings (it will be whatever is committed)
       try (Git git = newGit(repo)) {
         List<DiffEntry> diffEntries = git.diff()
           .setShowNameAndStatusOnly(true)
-          .setOldTree(prepareTreeParser(repo, targetRef))
+          .setOldTree(mergeBaseTree)
           .setNewTree(prepareNewTree(repo))
           .call();
 
@@ -149,9 +156,16 @@ public class GitScmProvider extends ScmProvider {
       repo.getConfig().setBoolean("core", null, "autocrlf", true);
       Map<Path, Set<Integer>> changedLines = new HashMap<>();
 
+      Optional<RevCommit> mergeBaseCommit = findMergeBase(repo, targetRef);
+      if (!mergeBaseCommit.isPresent()) {
+        LOG.warn("No merge base found between HEAD and " + targetRef.getName());
+        return null;
+      }
+
+      Path repoRootDir = repo.getDirectory().toPath().getParent();
+
       for (Path path : changedFiles) {
         ChangedLinesComputer computer = new ChangedLinesComputer();
-        Path repoRootDir = repo.getDirectory().toPath().getParent();
 
         try (DiffFormatter diffFmt = new DiffFormatter(new BufferedOutputStream(computer.receiver()))) {
           // copied from DiffCommand so that we can use a custom DiffFormatter which ignores white spaces.
@@ -160,7 +174,8 @@ public class GitScmProvider extends ScmProvider {
           diffFmt.setDiffComparator(RawTextComparator.WS_IGNORE_ALL);
           diffFmt.setPathFilter(PathFilter.create(toGitPath(repoRootDir.relativize(path).toString())));
 
-          List<DiffEntry> diffEntries = diffFmt.scan(prepareTreeParser(repo, targetRef), new FileTreeIterator(repo));
+          AbstractTreeIterator mergeBaseTree = prepareTreeParser(repo, mergeBaseCommit.get());
+          List<DiffEntry> diffEntries = diffFmt.scan(mergeBaseTree, new FileTreeIterator(repo));
           diffFmt.format(diffEntries);
           diffFmt.flush();
           diffEntries.stream()
@@ -268,30 +283,32 @@ public class GitScmProvider extends ScmProvider {
     return repo.exactRef("HEAD");
   }
 
-  private AbstractTreeIterator prepareTreeParser(Repository repo, Ref targetRef) throws IOException {
-    try (RevWalk walk = newRevWalk(repo)) {
+  private Optional<RevCommit> findMergeBase(Repository repo, Ref targetRef) throws IOException {
+    try (RevWalk walk = new RevWalk(repo)) {
       walk.markStart(walk.parseCommit(targetRef.getObjectId()));
       walk.markStart(walk.parseCommit(getHead(repo).getObjectId()));
       walk.setRevFilter(RevFilter.MERGE_BASE);
-      RevCommit base = walk.parseCommit(walk.next());
-      LOG.debug("Merge base sha1: {}", base.getName());
-      CanonicalTreeParser treeParser = new CanonicalTreeParser();
-      try (ObjectReader objectReader = repo.newObjectReader()) {
-        treeParser.reset(objectReader, base.getTree());
+      RevCommit next = walk.next();
+      if (next == null) {
+        return Optional.empty();
       }
-
+      RevCommit base = walk.parseCommit(next);
       walk.dispose();
-
-      return treeParser;
+      LOG.debug("Merge base sha1: {}", base.getName());
+      return Optional.of(base);
     }
+  }
+
+  AbstractTreeIterator prepareTreeParser(Repository repo, RevCommit commit) throws IOException {
+    CanonicalTreeParser treeParser = new CanonicalTreeParser();
+    try (ObjectReader objectReader = repo.newObjectReader()) {
+      treeParser.reset(objectReader, commit.getTree());
+    }
+    return treeParser;
   }
 
   Git newGit(Repository repo) {
     return new Git(repo);
-  }
-
-  RevWalk newRevWalk(Repository repo) {
-    return new RevWalk(repo);
   }
 
   Repository buildRepo(Path basedir) throws IOException {
