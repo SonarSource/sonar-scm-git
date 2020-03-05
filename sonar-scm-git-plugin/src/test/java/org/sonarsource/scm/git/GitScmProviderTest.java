@@ -279,6 +279,22 @@ public class GitScmProviderTest {
   }
 
   @Test
+  public void branchChangedLines_returns_empty_set_for_files_with_lines_removed_only() throws GitAPIException, IOException {
+    String fileName = "file-in-first-commit.xoo";
+    git.branchCreate().setName("b1").call();
+    git.checkout().setName("b1").call();
+
+    removeLineInFile(fileName, 2);
+    commit(fileName);
+
+    Path filePath = worktree.resolve(fileName);
+    Map<Path, Set<Integer>> changedLines = newScmProvider().branchChangedLines("master", worktree, Collections.singleton(filePath));
+
+    // both lines appear correctly
+    assertThat(changedLines).containsExactly(entry(filePath, emptySet()));
+  }
+
+  @Test
   public void branchChangedLines_uses_relative_paths_from_project_root() throws GitAPIException, IOException {
     String fileName = "project1/file-in-first-commit.xoo";
     createAndCommitFile(fileName);
@@ -640,7 +656,13 @@ public class GitScmProviderTest {
     List<String> lines = Files.readAllLines(filePath);
     lines.add(lineNumber - 1, randomizedLine(relativePath));
     Files.write(filePath, lines, StandardOpenOption.TRUNCATE_EXISTING);
+  }
 
+  private void removeLineInFile(String relativePath, int lineNumber) throws IOException {
+    Path filePath = worktree.resolve(relativePath);
+    List<String> lines = Files.readAllLines(filePath);
+    lines.remove(lineNumber - 1);
+    Files.write(filePath, lines, StandardOpenOption.TRUNCATE_EXISTING);
   }
 
   private void appendToAndCommitFile(String relativePath) throws IOException, GitAPIException {

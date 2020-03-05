@@ -259,7 +259,7 @@ public class GitScmProvider extends ScmProvider {
     }
   }
 
-  private boolean isDiffAlgoValid(Config cfg) {
+  private static boolean isDiffAlgoValid(Config cfg) {
     try {
       DiffAlgorithm.getAlgorithm(cfg.getEnum(
         ConfigConstants.CONFIG_DIFF_SECTION, null,
@@ -283,7 +283,7 @@ public class GitScmProvider extends ScmProvider {
     return repo.exactRef("HEAD");
   }
 
-  private Optional<RevCommit> findMergeBase(Repository repo, Ref targetRef) throws IOException {
+  private static Optional<RevCommit> findMergeBase(Repository repo, Ref targetRef) throws IOException {
     try (RevWalk walk = new RevWalk(repo)) {
       walk.markStart(walk.parseCommit(targetRef.getObjectId()));
       walk.markStart(walk.parseCommit(getHead(repo).getObjectId()));
