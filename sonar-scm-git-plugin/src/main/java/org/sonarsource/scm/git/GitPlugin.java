@@ -19,11 +19,13 @@
  */
 package org.sonarsource.scm.git;
 
+import org.eclipse.jgit.util.FS;
 import org.sonar.api.Plugin;
 
 public final class GitPlugin implements Plugin {
   @Override
   public void define(Context context) {
+    FS.setAsyncFileStoreAttributes(true);
     context.addExtensions(
       JGitBlameCommand.class,
       GitScmProvider.class,
