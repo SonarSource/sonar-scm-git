@@ -8,7 +8,7 @@
   </parent>
   <groupId>org.sonarsource.scm.git</groupId>
   <artifactId>sonar-scm-git</artifactId>
-  <version>1.11.1-SNAPSHOT</version>
+  <version>1.12-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>SonarQube SCM Git</name>
   <description>Git SCM Provider for SonarQube</description>
