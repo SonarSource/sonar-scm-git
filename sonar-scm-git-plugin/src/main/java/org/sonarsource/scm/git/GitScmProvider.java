@@ -23,6 +23,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -190,6 +191,38 @@ public class GitScmProvider extends ScmProvider {
     } catch (Exception e) {
       LOG.warn("Failed to get changed lines from git", e);
     }
+    return null;
+  }
+
+  /**
+   * This method will override API in SQ 8.4
+   */
+  @CheckForNull
+  public Instant forkDate(String referenceBranchName, Path projectBaseDir) {
+    try (Repository repo = buildRepo(projectBaseDir)) {
+      Ref targetRef = resolveTargetRef(referenceBranchName, repo);
+      if (targetRef == null) {
+        LOG.debug("Branch '{}' not found in git", referenceBranchName);
+        return null;
+      }
+
+      if (!isDiffAlgoValid(repo.getConfig())) {
+        LOG.warn("The diff algorithm configured in git is not supported. "
+          + "No information regarding changes in the branch will be collected, which can lead to unexpected results.");
+        return null;
+      }
+
+      Optional<RevCommit> mergeBaseCommit = findMergeBase(repo, targetRef);
+      if (!mergeBaseCommit.isPresent()) {
+        LOG.warn("No fork point found between HEAD and " + targetRef.getName());
+        return null;
+      }
+
+      return Instant.ofEpochSecond(mergeBaseCommit.get().getCommitTime());
+    } catch (Exception e) {
+      LOG.warn("Failed to find fork point with git", e);
+    }
+
     return null;
   }
 

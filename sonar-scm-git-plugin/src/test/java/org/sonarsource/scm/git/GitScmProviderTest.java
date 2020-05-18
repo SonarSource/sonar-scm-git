@@ -26,19 +26,24 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.PersonIdent;
 import org.eclipse.jgit.lib.RefDatabase;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -256,6 +261,74 @@ public class GitScmProviderTest {
 
     assertThat(newScmProvider().branchChangedLines("master", worktree, Collections.singleton(worktree.resolve("nonexistent"))))
       .isEmpty();
+  }
+
+  @Test
+  public void forkDate_from_diverged() throws IOException, GitAPIException {
+    createAndCommitFile("file-m1.xoo", Instant.now().minus(8, ChronoUnit.DAYS));
+    createAndCommitFile("file-m2.xoo", Instant.now().minus(7, ChronoUnit.DAYS));
+    Instant expectedForkDate = Instant.now().minus(6, ChronoUnit.DAYS);
+    createAndCommitFile("file-m3.xoo", expectedForkDate);
+    ObjectId forkPoint = git.getRepository().exactRef("HEAD").getObjectId();
+
+    appendToAndCommitFile("file-m3.xoo");
+    createAndCommitFile("file-m4.xoo");
+
+    git.branchCreate().setName("b1").setStartPoint(forkPoint.getName()).call();
+    git.checkout().setName("b1").call();
+    createAndCommitFile("file-b1.xoo");
+    appendToAndCommitFile("file-m1.xoo");
+    deleteAndCommitFile("file-m2.xoo");
+
+    assertThat(newScmProvider().forkDate("master", worktree))
+      .isEqualTo(expectedForkDate.truncatedTo(ChronoUnit.SECONDS));
+  }
+
+  @Test
+  public void forkDate_should_not_fail_if_reference_is_the_same_branch() throws IOException, GitAPIException {
+    createAndCommitFile("file-m1.xoo", Instant.now().minus(8, ChronoUnit.DAYS));
+    createAndCommitFile("file-m2.xoo", Instant.now().minus(7, ChronoUnit.DAYS));
+
+
+    ObjectId forkPoint = git.getRepository().exactRef("HEAD").getObjectId();
+    git.branchCreate().setName("b1").setStartPoint(forkPoint.getName()).call();
+    git.checkout().setName("b1").call();
+
+    Instant expectedForkDate = Instant.now().minus(6, ChronoUnit.DAYS);
+    createAndCommitFile("file-m3.xoo", expectedForkDate);
+
+    assertThat(newScmProvider().forkDate("b1", worktree))
+      .isEqualTo(expectedForkDate.truncatedTo(ChronoUnit.SECONDS));
+  }
+
+  @Test
+  public void forkDate_should_not_fail_with_patience_diff_algo() throws IOException {
+    Path gitConfig = worktree.resolve(".git").resolve("config");
+    Files.write(gitConfig, "[diff]\nalgorithm = patience\n".getBytes(StandardCharsets.UTF_8));
+    Repository repo = FileRepositoryBuilder.create(worktree.resolve(".git").toFile());
+    git = new Git(repo);
+
+    assertThat(newScmProvider().forkDate("master", worktree)).isNull();
+  }
+
+  @Test
+  public void forkDate_without_target_branch() throws IOException, GitAPIException {
+    createAndCommitFile("file-m1.xoo", Instant.now().minus(8, ChronoUnit.DAYS));
+    createAndCommitFile("file-m2.xoo", Instant.now().minus(7, ChronoUnit.DAYS));
+    Instant expectedForkDate = Instant.now().minus(6, ChronoUnit.DAYS);
+    createAndCommitFile("file-m3.xoo", expectedForkDate);
+    ObjectId forkPoint = git.getRepository().exactRef("HEAD").getObjectId();
+
+    appendToAndCommitFile("file-m3.xoo");
+    createAndCommitFile("file-m4.xoo");
+
+    git.branchCreate().setName("b1").setStartPoint(forkPoint.getName()).call();
+    git.checkout().setName("b1").call();
+    createAndCommitFile("file-b1.xoo");
+    appendToAndCommitFile("file-m1.xoo");
+    deleteAndCommitFile("file-m2.xoo");
+
+    assertThat(newScmProvider().forkDate("unknown", worktree)).isNull();
   }
 
   @Test
@@ -644,11 +717,20 @@ public class GitScmProviderTest {
     createAndCommitFile(relativePath, randomizedContent(relativePath, 3));
   }
 
+  private void createAndCommitFile(String relativePath, Instant commitDate) throws IOException, GitAPIException {
+    createFile(relativePath, randomizedContent(relativePath, 3));
+    commit(relativePath, commitDate);
+  }
+
   private void createAndCommitFile(String relativePath, String content) throws IOException, GitAPIException {
+    createFile(relativePath, content);
+    commit(relativePath);
+  }
+
+  private void createFile(String relativePath, String content) throws IOException {
     Path newFile = worktree.resolve(relativePath);
     Files.createDirectories(newFile.getParent());
     Files.write(newFile, content.getBytes(), StandardOpenOption.CREATE);
-    commit(relativePath);
   }
 
   private void addLineToFile(String relativePath, int lineNumber) throws IOException {
@@ -681,6 +763,11 @@ public class GitScmProviderTest {
     }
     String msg = String.join(",", relativePaths);
     git.commit().setAuthor("joe", "joe@example.com").setMessage(msg).call();
+  }
+
+  private void commit(String relativePath, Instant date) throws GitAPIException {
+    PersonIdent person = new PersonIdent("joe", "joe@example.com", Date.from(date), TimeZone.getDefault());
+    git.commit().setAuthor(person).setCommitter(person).setMessage(relativePath).call();
   }
 
   private GitScmProvider newScmProvider() {
