@@ -289,7 +289,6 @@ public class GitScmProviderTest {
     createAndCommitFile("file-m1.xoo", Instant.now().minus(8, ChronoUnit.DAYS));
     createAndCommitFile("file-m2.xoo", Instant.now().minus(7, ChronoUnit.DAYS));
 
-
     ObjectId forkPoint = git.getRepository().exactRef("HEAD").getObjectId();
     git.branchCreate().setName("b1").setStartPoint(forkPoint.getName()).call();
     git.checkout().setName("b1").call();
@@ -307,6 +306,21 @@ public class GitScmProviderTest {
     Files.write(gitConfig, "[diff]\nalgorithm = patience\n".getBytes(StandardCharsets.UTF_8));
     Repository repo = FileRepositoryBuilder.create(worktree.resolve(".git").toFile());
     git = new Git(repo);
+
+    assertThat(newScmProvider().forkDate("master", worktree)).isNull();
+  }
+
+  @Test
+  public void forkDate_should_not_fail_with_invalid_basedir() throws IOException {
+    assertThat(newScmProvider().forkDate("master", temp.newFolder().toPath())).isNull();
+  }
+
+  @Test
+  public void forkDate_should_not_fail_when_no_merge_base_is_found() throws IOException, GitAPIException {
+    createAndCommitFile("file-m1.xoo", Instant.now().minus(8, ChronoUnit.DAYS));
+
+    git.checkout().setOrphan(true).setName("b1").call();
+    createAndCommitFile("file-b1.xoo");
 
     assertThat(newScmProvider().forkDate("master", worktree)).isNull();
   }
