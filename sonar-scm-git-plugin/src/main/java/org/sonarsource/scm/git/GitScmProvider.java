@@ -41,7 +41,6 @@ import org.eclipse.jgit.diff.RawTextComparator;
 import org.eclipse.jgit.lib.Config;
 import org.eclipse.jgit.lib.ConfigConstants;
 import org.eclipse.jgit.lib.NullProgressMonitor;
-import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -278,15 +277,16 @@ public class GitScmProvider extends ScmProvider {
   }
 
   @Override
+  @CheckForNull
   public String revisionId(Path path) {
     RepositoryBuilder builder = getVerifiedRepositoryBuilder(path);
     try {
-      ObjectId obj = getHead(builder.build()).getObjectId();
-      if (obj == null) {
+      Ref head = getHead(builder.build());
+      if (head == null || head.getObjectId() == null) {
         // can happen on fresh, empty repos
         return null;
       }
-      return obj.getName();
+      return head.getObjectId().getName();
     } catch (IOException e) {
       throw new IllegalStateException("I/O error while getting revision ID for path: " + path, e);
     }
@@ -312,6 +312,7 @@ public class GitScmProvider extends ScmProvider {
     return treeParser;
   }
 
+  @CheckForNull
   private static Ref getHead(Repository repo) throws IOException {
     return repo.exactRef("HEAD");
   }
