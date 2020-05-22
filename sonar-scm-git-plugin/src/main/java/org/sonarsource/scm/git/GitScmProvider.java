@@ -202,7 +202,7 @@ public class GitScmProvider extends ScmProvider {
     try (Repository repo = buildRepo(projectBaseDir)) {
       Ref targetRef = resolveTargetRef(referenceBranchName, repo);
       if (targetRef == null) {
-        LOG.debug("Branch '{}' not found in git", referenceBranchName);
+        LOG.warn("Branch '{}' not found in git", referenceBranchName);
         return null;
       }
 
