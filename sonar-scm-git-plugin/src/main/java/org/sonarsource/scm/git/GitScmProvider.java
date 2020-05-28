@@ -103,6 +103,9 @@ public class GitScmProvider extends ScmProvider {
     try (Repository repo = buildRepo(rootBaseDir)) {
       Ref targetRef = resolveTargetRef(targetBranchName, repo);
       if (targetRef == null) {
+        analysisWarnings.addUnique(String.format("Could not find ref '%s' in refs/heads, refs/remotes/upstream or refs/remotes/origin. "
+          + "You may see unexpected issues and changes. "
+          + "Please make sure to fetch this ref before pull request analysis.", targetBranchName));
         return null;
       }
 
@@ -144,6 +147,9 @@ public class GitScmProvider extends ScmProvider {
     try (Repository repo = buildRepo(projectBaseDir)) {
       Ref targetRef = resolveTargetRef(targetBranchName, repo);
       if (targetRef == null) {
+        analysisWarnings.addUnique(String.format("Could not find ref '%s' in refs/heads, refs/remotes/upstream or refs/remotes/origin. "
+          + "You may see unexpected issues and changes. "
+          + "Please make sure to fetch this ref before pull request analysis.", targetBranchName));
         return null;
       }
 
@@ -247,14 +253,11 @@ public class GitScmProvider extends ScmProvider {
     } else {
       targetRef = getFirstExistingRef(repo, localRef, remoteRef, upstreamRef);
     }
-
+    
     if (targetRef == null) {
       LOG.warn("Could not find ref: {} in refs/heads, refs/remotes/upstream or refs/remotes/origin", targetBranchName);
-      analysisWarnings.addUnique(String.format("Could not find ref '%s' in refs/heads, refs/remotes/upstream or refs/remotes/origin. "
-        + "You may see unexpected issues and changes. "
-        + "Please make sure to fetch this ref before pull request analysis.", targetBranchName));
-      return null;
     }
+
     return targetRef;
   }
 
