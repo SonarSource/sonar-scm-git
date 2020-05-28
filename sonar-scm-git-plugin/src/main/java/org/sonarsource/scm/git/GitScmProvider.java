@@ -154,7 +154,6 @@ public class GitScmProvider extends ScmProvider {
 
       // force ignore different line endings when comparing a commit with the workspace
       repo.getConfig().setBoolean("core", null, "autocrlf", true);
-      Map<Path, Set<Integer>> changedLines = new HashMap<>();
 
       Optional<RevCommit> mergeBaseCommit = findMergeBase(repo, targetRef);
       if (!mergeBaseCommit.isPresent()) {
@@ -162,35 +161,40 @@ public class GitScmProvider extends ScmProvider {
         return null;
       }
 
+      Map<Path, Set<Integer>> changedLines = new HashMap<>();
       Path repoRootDir = repo.getDirectory().toPath().getParent();
 
       for (Path path : changedFiles) {
-        ChangedLinesComputer computer = new ChangedLinesComputer();
-
-        try (DiffFormatter diffFmt = new DiffFormatter(new BufferedOutputStream(computer.receiver()))) {
-          // copied from DiffCommand so that we can use a custom DiffFormatter which ignores white spaces.
-          diffFmt.setRepository(repo);
-          diffFmt.setProgressMonitor(NullProgressMonitor.INSTANCE);
-          diffFmt.setDiffComparator(RawTextComparator.WS_IGNORE_ALL);
-          diffFmt.setPathFilter(PathFilter.create(toGitPath(repoRootDir.relativize(path).toString())));
-
-          AbstractTreeIterator mergeBaseTree = prepareTreeParser(repo, mergeBaseCommit.get());
-          List<DiffEntry> diffEntries = diffFmt.scan(mergeBaseTree, new FileTreeIterator(repo));
-          diffFmt.format(diffEntries);
-          diffFmt.flush();
-          diffEntries.stream()
-            .filter(diffEntry -> diffEntry.getChangeType() == DiffEntry.ChangeType.ADD || diffEntry.getChangeType() == DiffEntry.ChangeType.MODIFY)
-            .findAny()
-            .ifPresent(diffEntry -> changedLines.put(path, computer.changedLines()));
-        } catch (Exception e) {
-          LOG.warn("Failed to get changed lines from git for file " + path, e);
-        }
+        collectChangedLines(repo, mergeBaseCommit.get(), changedLines, repoRootDir, path);
       }
       return changedLines;
     } catch (Exception e) {
       LOG.warn("Failed to get changed lines from git", e);
     }
     return null;
+  }
+
+  private void collectChangedLines(Repository repo, RevCommit mergeBaseCommit, Map<Path, Set<Integer>> changedLines, Path repoRootDir, Path changedFile) {
+    ChangedLinesComputer computer = new ChangedLinesComputer();
+
+    try (DiffFormatter diffFmt = new DiffFormatter(new BufferedOutputStream(computer.receiver()))) {
+      // copied from DiffCommand so that we can use a custom DiffFormatter which ignores white spaces.
+      diffFmt.setRepository(repo);
+      diffFmt.setProgressMonitor(NullProgressMonitor.INSTANCE);
+      diffFmt.setDiffComparator(RawTextComparator.WS_IGNORE_ALL);
+      diffFmt.setPathFilter(PathFilter.create(toGitPath(repoRootDir.relativize(changedFile).toString())));
+
+      AbstractTreeIterator mergeBaseTree = prepareTreeParser(repo, mergeBaseCommit);
+      List<DiffEntry> diffEntries = diffFmt.scan(mergeBaseTree, new FileTreeIterator(repo));
+      diffFmt.format(diffEntries);
+      diffFmt.flush();
+      diffEntries.stream()
+        .filter(diffEntry -> diffEntry.getChangeType() == DiffEntry.ChangeType.ADD || diffEntry.getChangeType() == DiffEntry.ChangeType.MODIFY)
+        .findAny()
+        .ifPresent(diffEntry -> changedLines.put(changedFile, computer.changedLines()));
+    } catch (Exception e) {
+      LOG.warn("Failed to get changed lines from git for file " + changedFile, e);
+    }
   }
 
   /**

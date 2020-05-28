@@ -366,6 +366,16 @@ public class GitScmProviderTest {
   }
 
   @Test
+  public void branchChangedLines_should_not_fail_if_there_is_no_merge_base() throws GitAPIException, IOException {
+    createAndCommitFile("file-m1.xoo");
+    git.checkout().setOrphan(true).setName("b1").call();
+    createAndCommitFile("file-b1.xoo");
+
+    Map<Path, Set<Integer>> changedLines = newScmProvider().branchChangedLines("master", worktree, Collections.singleton(Paths.get("")));
+    assertThat(changedLines).isNull();
+  }
+
+  @Test
   public void branchChangedLines_returns_empty_set_for_files_with_lines_removed_only() throws GitAPIException, IOException {
     String fileName = "file-in-first-commit.xoo";
     git.branchCreate().setName("b1").call();
