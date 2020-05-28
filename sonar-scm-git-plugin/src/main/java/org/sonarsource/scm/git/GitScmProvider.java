@@ -307,7 +307,11 @@ public class GitScmProvider extends ScmProvider {
   private static AbstractTreeIterator prepareNewTree(Repository repo) throws IOException {
     CanonicalTreeParser treeParser = new CanonicalTreeParser();
     try (ObjectReader objectReader = repo.newObjectReader()) {
-      treeParser.reset(objectReader, repo.parseCommit(getHead(repo).getObjectId()).getTree());
+      Ref head = getHead(repo);
+      if (head == null) {
+        throw new IOException("HEAD reference not found");
+      }
+      treeParser.reset(objectReader, repo.parseCommit(head.getObjectId()).getTree());
     }
     return treeParser;
   }
@@ -319,8 +323,13 @@ public class GitScmProvider extends ScmProvider {
 
   private static Optional<RevCommit> findMergeBase(Repository repo, Ref targetRef) throws IOException {
     try (RevWalk walk = new RevWalk(repo)) {
+      Ref head = getHead(repo);
+      if (head == null) {
+        throw new IOException("HEAD reference not found");
+      }
+
       walk.markStart(walk.parseCommit(targetRef.getObjectId()));
-      walk.markStart(walk.parseCommit(getHead(repo).getObjectId()));
+      walk.markStart(walk.parseCommit(head.getObjectId()));
       walk.setRevFilter(RevFilter.MERGE_BASE);
       RevCommit next = walk.next();
       if (next == null) {
