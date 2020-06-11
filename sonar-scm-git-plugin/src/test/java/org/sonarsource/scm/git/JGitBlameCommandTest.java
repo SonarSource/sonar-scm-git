@@ -89,7 +89,7 @@ public class JGitBlameCommandTest {
     fs.add(inputFile);
 
     BlameOutput blameResult = mock(BlameOutput.class);
-    when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile));
+    when(input.filesToBlame()).thenReturn(Arrays.asList(inputFile));
     jGitBlameCommand.blame(input, blameResult);
 
     Date revisionDate1 = DateUtils.parseDateTime("2012-07-17T16:12:48+0200");
@@ -133,7 +133,7 @@ public class JGitBlameCommandTest {
     fs.add(inputFile);
 
     BlameOutput blameResult = mock(BlameOutput.class);
-    when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile));
+    when(input.filesToBlame()).thenReturn(Arrays.asList(inputFile));
 
     thrown.expect(MessageException.class);
     thrown.expectMessage("Not inside a Git work tree: ");
@@ -157,7 +157,7 @@ public class JGitBlameCommandTest {
     fs.add(inputFile);
 
     BlameOutput blameResult = mock(BlameOutput.class);
-    when(input.filesToBlame()).thenReturn(Arrays.<InputFile>asList(inputFile));
+    when(input.filesToBlame()).thenReturn(Arrays.asList(inputFile));
     jGitBlameCommand.blame(input, blameResult);
 
     Date revisionDate = DateUtils.parseDateTime("2012-07-17T16:12:48+0200");

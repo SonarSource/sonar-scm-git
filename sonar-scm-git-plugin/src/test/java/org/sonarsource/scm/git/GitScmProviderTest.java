@@ -570,7 +570,7 @@ public class GitScmProviderTest {
     Repository repository = mock(Repository.class);
     RefDatabase refDatabase = mock(RefDatabase.class);
     when(repository.getRefDatabase()).thenReturn(refDatabase);
-    when(refDatabase.getRef("branch")).thenReturn(null);
+    when(refDatabase.findRef("branch")).thenReturn(null);
 
     GitScmProvider provider = new GitScmProvider(mockCommand(), analysisWarnings, gitIgnoreCommand, system2) {
       @Override

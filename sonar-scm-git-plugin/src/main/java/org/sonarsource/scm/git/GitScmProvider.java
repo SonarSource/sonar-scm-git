@@ -109,7 +109,7 @@ public class GitScmProvider extends ScmProvider {
         return null;
       }
 
-      if (!isDiffAlgoValid(repo.getConfig())) {
+      if (isDiffAlgoInvalid(repo.getConfig())) {
         LOG.warn("The diff algorithm configured in git is not supported. "
           + "No information regarding changes in the branch will be collected, which can lead to unexpected results.");
         return null;
@@ -153,7 +153,7 @@ public class GitScmProvider extends ScmProvider {
         return null;
       }
 
-      if (!isDiffAlgoValid(repo.getConfig())) {
+      if (isDiffAlgoInvalid(repo.getConfig())) {
         // we already print a warning when branchChangedFiles is called
         return null;
       }
@@ -215,7 +215,7 @@ public class GitScmProvider extends ScmProvider {
         return null;
       }
 
-      if (!isDiffAlgoValid(repo.getConfig())) {
+      if (isDiffAlgoInvalid(repo.getConfig())) {
         LOG.warn("The diff algorithm configured in git is not supported. "
           + "No information regarding changes in the branch will be collected, which can lead to unexpected results.");
         return null;
@@ -299,15 +299,15 @@ public class GitScmProvider extends ScmProvider {
     }
   }
 
-  private static boolean isDiffAlgoValid(Config cfg) {
+  private static boolean isDiffAlgoInvalid(Config cfg) {
     try {
       DiffAlgorithm.getAlgorithm(cfg.getEnum(
         ConfigConstants.CONFIG_DIFF_SECTION, null,
         ConfigConstants.CONFIG_KEY_ALGORITHM,
         DiffAlgorithm.SupportedAlgorithm.HISTOGRAM));
-      return true;
-    } catch (IllegalArgumentException e) {
       return false;
+    } catch (IllegalArgumentException e) {
+      return true;
     }
   }
 
