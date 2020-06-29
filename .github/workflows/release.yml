@@ -17,6 +17,8 @@ jobs:
           repository: SonarSource/gh-action_LT_release
       - name: Run release action
         id: run_release
+        with:
+          distribute: true
         uses: SonarSource/gh-action_LT_release@master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_ORG_TOKEN }}
