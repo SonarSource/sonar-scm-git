@@ -4,9 +4,6 @@ on:
     branches:
       - master
       - "dogfood/**"
-  delete:
-    branches:
-      - "dogfood/**"
 jobs:
   dogfood_merge:
     runs-on: ubuntu-latest
