@@ -21,16 +21,23 @@ package org.sonarsource.scm.git;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.blame.BlameResult;
 import org.eclipse.jgit.diff.RawTextComparator;
 import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.submodule.SubmoduleStatus;
 import org.sonar.api.batch.fs.InputFile;
 import org.sonar.api.batch.scm.BlameCommand;
 import org.sonar.api.batch.scm.BlameLine;
@@ -54,23 +61,43 @@ public class JGitBlameCommand extends BlameCommand {
   @Override
   public void blame(BlameInput input, BlameOutput output) {
     File basedir = input.fileSystem().baseDir();
-    try (Repository repo = JGitUtils.buildRepository(basedir.toPath()); Git git = Git.wrap(repo)) {
+    Map<String,Git> subGits=new HashMap<>();
+    try 
+    {
+      Repository repo = JGitUtils.buildRepository(basedir.toPath());
+      Git git = Git.wrap(repo);
       File gitBaseDir = repo.getWorkTree();
-
       if (cloneIsInvalid(gitBaseDir)) {
         return;
       }
+      Path parentPath=gitBaseDir.toPath();
+      Map<String,SubmoduleStatus> submap=git.submoduleStatus().call();
+	  for(Entry<String,SubmoduleStatus> e:submap.entrySet())
+	  {
+		  Path sub=parentPath.resolve(e.getKey());
+		  Repository subRepo = JGitUtils.buildRepository(sub);
+		  Git subGit=Git.wrap(subRepo);
+		  if(cloneIsInvalid(subRepo.getWorkTree())) continue;
+		  subGits.put(e.getKey(), subGit);
+	  }
 
       Stream<InputFile> stream = StreamSupport.stream(input.filesToBlame().spliterator(), true);
       ForkJoinPool forkJoinPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), new GitThreadFactory(), null, false);
-      forkJoinPool.submit(() -> stream.forEach(inputFile -> blame(output, git, gitBaseDir, inputFile)));
+      forkJoinPool.submit(() -> stream.forEach(inputFile -> blame(output, subGits,git, inputFile)));
       try {
         forkJoinPool.shutdown();
         forkJoinPool.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
       } catch (InterruptedException e) {
         LOG.info("Git blame interrupted");
       }
+      git.close();
+      git.getRepository().close();
+      subGits.forEach((x,y)->{y.close();y.getRepository().close();});
     }
+    catch (GitAPIException ge)
+	{
+    	LOG.info("Git blame interrupted");
+	}
   }
 
   private boolean cloneIsInvalid(File gitBaseDir) {
@@ -91,15 +118,24 @@ public class JGitBlameCommand extends BlameCommand {
     return false;
   }
 
-  private void blame(BlameOutput output, Git git, File gitBaseDir, InputFile inputFile) {
+  private void blame(BlameOutput output, Map<String,Git> subGits,Git gitBase, InputFile inputFile) {
+	File gitBaseDir=gitBase.getRepository().getWorkTree();
     String filename = pathResolver.relativePath(gitBaseDir, inputFile.file());
+    String gitf=filename;
     LOG.debug("Blame file {}", filename);
+    Git git=gitBase;
+    int idx=0;
+    if(!subGits.isEmpty()&&(idx=filename.indexOf('/'))>0)
+    {
+	    git=subGits.getOrDefault(filename.substring(0,idx),gitBase);
+	    if(git!=gitBase) gitf=filename.substring(idx+1);
+    }
     BlameResult blameResult;
     try {
       blameResult = git.blame()
         // Equivalent to -w command line option
         .setTextComparator(RawTextComparator.WS_IGNORE_ALL)
-        .setFilePath(filename).call();
+        .setFilePath(gitf).call();
     } catch (Exception e) {
       throw new IllegalStateException("Unable to blame file " + inputFile.relativePath(), e);
     }
@@ -125,5 +161,4 @@ public class JGitBlameCommand extends BlameCommand {
     }
     output.blameResult(inputFile, lines);
   }
-
 }

@@ -61,7 +61,7 @@ import static org.sonarsource.scm.git.Utils.javaUnzip;
 public class JGitBlameCommandTest {
 
   private static final String DUMMY_JAVA = "src/main/java/org/dummy/Dummy.java";
-
+  private static final String SUBDUMMY_JAVA = "subdummy/src/main/java/org/dummy/SubDummy.java";
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
@@ -72,7 +72,36 @@ public class JGitBlameCommandTest {
   public LogTester logTester = new LogTester();
 
   private final BlameInput input = mock(BlameInput.class);
+  @Test
+  public void testSubBlame() throws IOException {
+    File projectDir = temp.newFolder();
+    javaUnzip(new File("test-repos/modules-git.zip"), projectDir);
 
+    JGitBlameCommand jGitBlameCommand = newJGitBlameCommand();
+
+    File baseDir = new File(projectDir, "modules-git");
+    DefaultFileSystem fs = new DefaultFileSystem(baseDir);
+    when(input.fileSystem()).thenReturn(fs);
+    DefaultInputFile inputFile = new TestInputFileBuilder("foo", SUBDUMMY_JAVA)
+      .setModuleBaseDir(baseDir.toPath())
+      .build();
+    fs.add(inputFile);
+
+    BlameOutput blameResult = mock(BlameOutput.class);
+    when(input.filesToBlame()).thenReturn(Arrays.asList(inputFile));
+    jGitBlameCommand.blame(input, blameResult);
+    
+    Date revisionDate1 = DateUtils.parseDateTime("2020-12-02T12:07:06+0800");
+    String revision1 = "7480173c87c83c472562665e011792dfaf0ee045";
+    String author1 = "genvy@dummy.non";
+
+    List<BlameLine> expectedBlame = new LinkedList<>();
+    for (int i = 0; i < 29; i++) {
+      expectedBlame.add(new BlameLine().revision(revision1).date(revisionDate1).author(author1));
+    }
+    verify(blameResult).blameResult(inputFile, expectedBlame);
+  }
+  
   @Test
   public void testBlame() throws IOException {
     File projectDir = temp.newFolder();
@@ -298,7 +327,7 @@ public class JGitBlameCommandTest {
 
     verify(analysisWarnings).addUnique(startsWith("Shallow clone detected"));
   }
-
+ 
   @Test
   public void return_early_when_clone_with_reference_detected() throws IOException {
     File projectDir = temp.newFolder();
