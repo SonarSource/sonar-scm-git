@@ -2,6 +2,10 @@
 
 [![Build Status](https://api.cirrus-ci.com/github/SonarSource/sonar-scm-git.svg)](https://cirrus-ci.com/github/SonarSource/sonar-scm-git) [![Quality Gate](https://next.sonarqube.com/sonarqube/api/project_badges/measure?project=org.sonarsource.scm.git%3Asonar-scm-git&metric=alert_status)](https://next.sonarqube.com/sonarqube/dashboard?id=org.sonarsource.scm.git%3Asonar-scm-git)
 
+### Enbedded since SonarQube 8.5
+
+This plugin is embedded in SonarQube starting 8.5, see [embedded sources](https://github.com/SonarSource/sonarqube/tree/master/sonar-scanner-engine/src/main/java/org/sonar/scm/git).
+
 ### Have Question or Feedback?
 
 For support questions ("How do I?", "I got this error, why?", ...), please head to the [SonarSource forum](https://community.sonarsource.com/c/help). There are chances that a question similar to yours has already been answered.
