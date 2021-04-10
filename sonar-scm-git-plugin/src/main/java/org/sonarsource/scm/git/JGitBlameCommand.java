@@ -62,24 +62,20 @@ public class JGitBlameCommand extends BlameCommand {
   public void blame(BlameInput input, BlameOutput output) {
     File basedir = input.fileSystem().baseDir();
     Map<String,Git> subGits=new HashMap<>();
-    try 
-    {
-      Repository repo = JGitUtils.buildRepository(basedir.toPath());
-      Git git = Git.wrap(repo);
+    try(Repository repo = JGitUtils.buildRepository(basedir.toPath());Git git = Git.wrap(repo)){
       File gitBaseDir = repo.getWorkTree();
+
       if (cloneIsInvalid(gitBaseDir)) {
         return;
       }
       Path parentPath=gitBaseDir.toPath();
       Map<String,SubmoduleStatus> submap=git.submoduleStatus().call();
-	  for(Entry<String,SubmoduleStatus> e:submap.entrySet())
-	  {
-		  Path sub=parentPath.resolve(e.getKey());
-		  Repository subRepo = JGitUtils.buildRepository(sub);
-		  Git subGit=Git.wrap(subRepo);
-		  if(cloneIsInvalid(subRepo.getWorkTree())) continue;
-		  subGits.put(e.getKey(), subGit);
-	  }
+      for(Entry<String,SubmoduleStatus> e:submap.entrySet()){
+          Path subPath=parentPath.resolve(e.getKey());
+          Repository subRepo = JGitUtils.buildRepository(subPath);
+          Git subGit=Git.wrap(subRepo);
+          if(!cloneIsInvalid(subRepo.getWorkTree())) subGits.put(e.getKey(), subGit);
+      }
 
       Stream<InputFile> stream = StreamSupport.stream(input.filesToBlame().spliterator(), true);
       ForkJoinPool forkJoinPool = new ForkJoinPool(Runtime.getRuntime().availableProcessors(), new GitThreadFactory(), null, false);
@@ -90,13 +86,11 @@ public class JGitBlameCommand extends BlameCommand {
       } catch (InterruptedException e) {
         LOG.info("Git blame interrupted");
       }
-      git.close();
-      git.getRepository().close();
       subGits.forEach((x,y)->{y.close();y.getRepository().close();});
     }
     catch (GitAPIException ge)
 	{
-    	LOG.info("Git blame interrupted");
+    	LOG.info("Git submoduleStatus error "+ge.getMessage());
 	}
   }
 
@@ -120,22 +114,21 @@ public class JGitBlameCommand extends BlameCommand {
 
   private void blame(BlameOutput output, Map<String,Git> subGits,Git gitBase, InputFile inputFile) {
 	File gitBaseDir=gitBase.getRepository().getWorkTree();
-    String filename = pathResolver.relativePath(gitBaseDir, inputFile.file());
-    String gitf=filename;
-    LOG.debug("Blame file {}", filename);
+    String baseRelativePath = pathResolver.relativePath(gitBaseDir, inputFile.file());
+    String repoRelativePath=baseRelativePath;
+    LOG.debug("Blame file {}", baseRelativePath);
     Git git=gitBase;
     int idx=0;
-    if(!subGits.isEmpty()&&(idx=filename.indexOf('/'))>0)
-    {
-	    git=subGits.getOrDefault(filename.substring(0,idx),gitBase);
-	    if(git!=gitBase) gitf=filename.substring(idx+1);
+    if(!subGits.isEmpty()&&(idx=baseRelativePath.indexOf('/'))>0){
+	    git=subGits.getOrDefault(baseRelativePath.substring(0,idx),gitBase);
+	    if(git!=gitBase) repoRelativePath=baseRelativePath.substring(idx+1);
     }
     BlameResult blameResult;
     try {
       blameResult = git.blame()
         // Equivalent to -w command line option
         .setTextComparator(RawTextComparator.WS_IGNORE_ALL)
-        .setFilePath(gitf).call();
+        .setFilePath(repoRelativePath).call();
     } catch (Exception e) {
       throw new IllegalStateException("Unable to blame file " + inputFile.relativePath(), e);
     }
