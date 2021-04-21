@@ -1,5 +1,4 @@
-# content of service-account-credentials.json, used to access to Google Cloud Platform
-gcp_credentials: ENCRYPTED[fa17b0927affa49d75baf43e7ef96a98f7d63f8a5c260603e7a8e7a42fa4df4a0231058ec3fdf0b116bde1f748674eb0]
+gcp_credentials: ENCRYPTED[!e5f7207bd8d02d383733bef47e18296ac32e3b7d22eb480354e8dd8fdc0004be45a8a4e72c797bd66ee94eb3340fa363!]
 
 #
 # ENV VARIABLES
@@ -31,7 +30,7 @@ env:
 # RE-USABLE CONFIGS
 #
 container_definition: &CONTAINER_DEFINITION
-  image: us.gcr.io/sonarqube-team/base:mvn-jdk-11
+  image: us.gcr.io/sonarqube-team/base:j11-m3-latest
   cluster_name: cirrus-ci-cluster
   zone: us-central1-a
   namespace: default
@@ -50,6 +49,8 @@ build_task:
   env:
     SONAR_TOKEN: ENCRYPTED[!5ba7cbb5bf9d168de69bcd444d9e884c9cf664be1115640cc64e49df6d241c309a87fc527cab533c08f289b167187017!]
     SONAR_HOST_URL: https://next.sonarqube.com/sonarqube
+    SIGN_KEY: ENCRYPTED[!54147bd7fb86bbe802fd432fab7d53bee19e71fe642d7b57703ec985b10f1976602adc743a906ea9851e5dd793be540c!]
+    PGP_PASSPHRASE: ENCRYPTED[!15c41fa6fdc13ace4a011693a002664593e038f91a2597fad40f4295f0de9858a587c504f5b9f1f97250f19fd5f4a655!]
   maven_cache:
     folder: ${CIRRUS_WORKING_DIR}/.m2/repository
   script:
