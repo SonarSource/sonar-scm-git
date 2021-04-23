@@ -24,6 +24,6 @@ Make sure that you follow our code style and all tests are passing (Travis build
 
 ### License
 
-Copyright 2014-2017 SonarSource.
+Copyright 2014-2021 SonarSource.
 
 Licensed under the [GNU Lesser General Public License, Version 3.0](http://www.gnu.org/licenses/lgpl.txt)
